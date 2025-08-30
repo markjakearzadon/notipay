@@ -4,7 +4,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 const kambagelan = () => {
   const router = useRouter();
   return (
-    <View className="h-screen w-screen bg-white flex-1 justify-center items-center p-4">
+    <View className="h-full w-screen bg-white flex-1 justify-center items-center p-4">
       <Text className="text-black text-lg mb-8">
         who the hell even bothers with this shit bro nobody reads this type of
         shit

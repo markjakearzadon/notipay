@@ -18,7 +18,7 @@ const register = () => {
   const handleRegister = () => {};
 
   return (
-    <SafeAreaView className="h-screen w-screen bg-white">
+    <SafeAreaView className="h-full w-screen bg-white">
       <ScrollView className="flex-1">
         <View className="items-center mt-32">
           <Text className="text-2xl font-bold">LOGO</Text>
