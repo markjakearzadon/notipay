@@ -38,9 +38,9 @@ export default function TabsLayout() {
       {/* make the icon big when it is active */}
 
       <Tabs.Screen
-        name="payments"
+        name="unpaiddues"
         options={{
-          title: "Payments",
+          title: "Dues",
           tabBarIcon: ({ color, focused }) => (
             <Image
               source={pera}
@@ -56,9 +56,9 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="announcement"
+        name="notification"
         options={{
-          title: "Announcements",
+          title: "Notification",
           tabBarIcon: ({ color }) => (
             <Image
               source={bell}

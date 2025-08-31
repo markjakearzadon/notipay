@@ -20,11 +20,14 @@ const Home = () => {
           <Text>Date & Time</Text>
           <Text>Status</Text>
         </View>
-        <ScrollView className="max-h-screen-safe">
+        <ScrollView
+          className="max-h-screen-safe"
+          showsVerticalScrollIndicator={false}
+        >
           {data.map((item, index) => (
             <View
               key={index}
-              className="flex-row justify-around w-full p-3 rounded-3xl  bg-slate-300 border border-slate-800 mb-1"
+              className="flex-row justify-around w-full p-3 rounded-2xl  bg-slate-300 border border-slate-800 mb-1"
             >
               <Text
                 className="flex-1 text-left text-ellipsis"

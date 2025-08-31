@@ -22,7 +22,10 @@ const admindashboard = () => {
           </View>
 
           <View className="justify-center items-center gap-2 mb-8">
-            <TouchableOpacity className="w-32 h-32 bg-green-50 rounded-lg justify-center items-center">
+            <TouchableOpacity
+              className="w-32 h-32 bg-green-50 rounded-lg justify-center items-center"
+              onPress={() => router.push("/paymentlist")}
+            >
               <Image source={ListahanNgMgaGago} className="w-16 h-16" />
             </TouchableOpacity>
             <Text>PAYMENT LIST</Text>
