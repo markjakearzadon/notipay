@@ -5,8 +5,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Anunsyo from "@/assets/images/bullhorn-solid-full.png";
 import ListahanNgMgaGago from "@/assets/images/receipt-solid-full.png";
 import DalawangTao from "@/assets/images/user-group-solid-full.png";
+import { useRouter } from "expo-router";
 
 const admindashboard = () => {
+  const router = useRouter();
+
   return (
     <SafeAreaView className="h-screen w-screen bg-white">
       <View className="flex-1 justify-between">
@@ -25,7 +28,10 @@ const admindashboard = () => {
             <Text>PAYMENT LIST</Text>
           </View>
           <View className="justify-center items-center gap-2">
-            <TouchableOpacity className="w-32 h-32 bg-yellow-50 rounded-lg justify-center items-center">
+            <TouchableOpacity
+              className="w-32 h-32 bg-yellow-50 rounded-lg justify-center items-center"
+              onPress={() => router.push("/createannouncement")}
+            >
               <Image source={Anunsyo} className="w-16 h-16" />
             </TouchableOpacity>
             <Text>ANNOUNCEMENT</Text>

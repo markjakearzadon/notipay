@@ -1,8 +1,44 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
 import { Stack } from "expo-router";
+import { debounce } from "lodash";
+import { useCallback, useEffect } from "react";
 import { StatusBar } from "react-native";
 import "../global.css";
-
 export default function RootLayout() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const savedState = await AsyncStorage.getItem("NAVIGATION_STATE");
+        if (savedState) {
+          navigation.reset(JSON.parse(savedState));
+        }
+      } catch (e) {
+        console.error("Failed to restore navigation state:", e);
+      }
+    };
+
+    restoreState();
+  }, [navigation]); // Add navigation to dependencies
+
+  const saveState = useCallback(
+    debounce(async () => {
+      try {
+        const state = navigation.getState();
+        await AsyncStorage.setItem("NAVIGATION_STATE", JSON.stringify(state));
+      } catch (e) {
+        console.error("Failed to save navigation state:", e);
+      }
+    }, 500), // Debounce for 500ms
+    [navigation]
+  );
+
+  useEffect(() => {
+    navigation.addListener("state", saveState);
+    return () => navigation.removeListener("state", saveState);
+  }, [navigation, saveState]);
   return (
     <>
       <Stack>

@@ -1,12 +1,16 @@
+import { Image } from "expo-image";
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+
+import bell from "@/assets/images/bell-solid-full.png";
+import bahay from "@/assets/images/house-solid-full.png";
+import pera from "@/assets/images/money-bills-solid-full.png";
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "tomato",
+        tabBarActiveTintColor: "#2b7fff",
         tabBarInactiveTintColor: "gray",
         tabBarStyle: {
           paddingBottom: 12,
@@ -19,16 +23,52 @@ export default function TabsLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 28, textAlign: "center" }}>🏠</Text>
+            <Image
+              source={bahay}
+              contentFit="contain"
+              style={{
+                width: 28,
+                height: 28,
+                tintColor: color,
+              }}
+            />
           ),
         }}
       />
+      {/* make the icon big when it is active */}
+
       <Tabs.Screen
         name="payments"
         options={{
           title: "Payments",
+          tabBarIcon: ({ color, focused }) => (
+            <Image
+              source={pera}
+              contentFit="contain"
+              style={{
+                width: 28,
+                height: 28,
+                tintColor: color,
+              }}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="announcement"
+        options={{
+          title: "Announcements",
           tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 28, textAlign: "center" }}>📃</Text>
+            <Image
+              source={bell}
+              contentFit="contain"
+              style={{
+                width: 28,
+                height: 28,
+                tintColor: color,
+              }}
+            />
           ),
         }}
       />
