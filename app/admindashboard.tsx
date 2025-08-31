@@ -15,7 +15,10 @@ const admindashboard = () => {
       <View className="flex-1 justify-between">
         <View className="h-screen w-screen bg-white flex-1 justify-center items-center p-4">
           <View className="justify-center items-center gap-2 mb-8">
-            <TouchableOpacity className="w-32 h-32 bg-blue-50 rounded-lg justify-center items-center">
+            <TouchableOpacity
+              className="w-32 h-32 bg-blue-50 rounded-lg justify-center items-center"
+              onPress={() => router.push("/memberlist")}
+            >
               <Image source={DalawangTao} className="w-16 h-16" />
             </TouchableOpacity>
             <Text className="text-center">MEMBERSHIP LIST</Text>

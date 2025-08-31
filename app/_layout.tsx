@@ -62,6 +62,10 @@ export default function RootLayout() {
           name="createannouncement"
           options={{ headerShown: true, headerTitle: "Create Announcement" }}
         />
+        <Stack.Screen
+          name="memberlist"
+          options={{ headerShown: true, headerTitle: "Member List" }}
+        />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
       <StatusBar barStyle={"default"} />
