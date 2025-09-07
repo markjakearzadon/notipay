@@ -17,7 +17,7 @@ const createannouncement = () => {
             placeholder="Enter announcement content"
             multiline
           />
-          <TouchableOpacity className="bg-blue-500 px-3 py-2 rounded-md">
+          <TouchableOpacity className="bg-deepblue px-3 py-3 rounded-md">
             <Text className="text-white text-center">Create Announcement</Text>
           </TouchableOpacity>
         </View>

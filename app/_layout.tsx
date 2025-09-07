@@ -48,11 +48,11 @@ export default function RootLayout() {
         <Stack.Screen name="kambagelan" options={{ headerShown: false }} />
         <Stack.Screen
           name="admin"
-          options={{ headerShown: true, headerTitle: "Admin" }}
+          options={{ headerShown: false, headerTitle: "Admin" }}
         />
         <Stack.Screen
           name="admindashboard"
-          options={{ headerShown: true, headerTitle: "DashBoard" }}
+          options={{ headerShown: false, headerTitle: "DashBoard" }}
         />
         <Stack.Screen
           name="paymentlist"
