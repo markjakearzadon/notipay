@@ -1,0 +1,1 @@
+export const API_BASE_URL = __DEV__ ? 'http://192.168.1.100:8080' : 'https://your-production-api.com';
