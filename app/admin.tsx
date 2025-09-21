@@ -61,7 +61,7 @@ const AdminLogin = () => {
     };
 
     return (
-	<SafeAreaView className="h-screen w-screen bg-white">
+	<SafeAreaView className="flex-1 bg-white">
 	    <ScrollView className="flex-1">
 		<View className="items-center">
 		    <Image source={title} style={styles.title} />
