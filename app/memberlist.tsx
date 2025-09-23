@@ -1,29 +1,73 @@
-import React from "react";
-import { FlatList, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { FlatList, Text, View, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as SecureStore from "expo-secure-store";
+
+interface User {
+  id: number;
+  userName: string;
+  role: string;
+}
+
+const API_URL = "http://10.239.1.175:5113/api/auth/members";
 
 const MemberList = () => {
-  const randomdata = [
-    { name: "Emma Thompson", phone: "555-0123-4567" },
-    { name: "Liam Carter", phone: "555-9876-5432" },
-    { name: "Sophia Nguyen", phone: "555-2345-6789" },
-    { name: "Noah Patel", phone: "555-3456-7890" },
-    { name: "Ava Rodriguez", phone: "555-4567-8901" },
-  ];
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const renderItem = ({ item }: { item: { name: string; phone: string } }) => (
+  const fetchMembers = async () => {
+    try {
+	const token = await SecureStore.getItemAsync('accessToken');
+	if (!token) {
+            Alert.alert("Error", "No access token found. Please log in.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(API_URL, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch members");
+      }
+
+      const data: User[] = await response.json();
+      setUsers(data);
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const renderItem = ({ item }: { item: User }) => (
     <View className="p-4 m-2 bg-gray-100 rounded-lg border border-gray-200">
-      <Text className="text-lg font-semibold text-gray-800">{item.name}</Text>
-      <Text className="text-base text-gray-600">{item.phone}</Text>
+      <Text className="text-lg font-semibold text-gray-800">{item.userName}</Text>
+      <Text className="text-base text-gray-600">{item.role}</Text>
     </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView className="h-screen w-full justify-center items-center bg-white">
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="h-screen w-full bg-white">
       <FlatList
-        data={randomdata}
+        data={users}
         renderItem={renderItem}
-        keyExtractor={(item) => item.phone}
+        keyExtractor={(item) => item.id.toString()}
         className="px-4"
       />
     </SafeAreaView>
