@@ -1,7 +1,6 @@
-// services/api.ts
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "http://10.239.1.175:5113/api"; 
+const API_URL = "http://192.168.254.132:5113/api"; 
 
 // ---------- Types ----------
 export interface PaymentNotice {
@@ -16,9 +15,22 @@ export interface PaymentNotice {
     xenditPaymentLinkUrl?: string;
 }
 
+export interface CreatePaymentNoticeDto {
+    userId: string;
+    title: string;
+    description?: string;
+    amount: number;
+    currency: string | null;
+}
+
 export interface LoginRequest {
     userName: string;
     password: string;
+}
+
+export interface UpdatePaymentStatusDto {
+    status: number;
+    paidAt?: string | null;
 }
 
 export interface RegisterRequest {
@@ -353,17 +365,65 @@ export const paymentNoticeApi = {
         const json = await res.json();
         return json.data ?? json; // handle both wrapped and plain responses
     },
+
+    updatePaymentStatus: async (id: string, dto: UpdatePaymentStatusDto): Promise<ApiResponse> => {
+        const res = await fetchWithAuth(`/payment-notices/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify(dto),
+        });
+        if (!res.ok) {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                const err = json.error ?? json.message ?? txt;
+                throw new Error(err || "Failed to update payment status");
+            } catch {
+                throw new Error(txt || "Failed to update payment status");
+            }
+        }
+        const json = await res.json();
+        return json.data ?? json; // Handle both wrapped and plain responses
+    },
+    
+    getMyUnpaidDues: async (): Promise<PaymentNotice[]> => {
+        const res = await fetchWithAuth("/payment-notices/my-unpaid", { method: "GET" });
+        if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(txt || "Failed to fetch unpaid dues");
+        }
+        const json = await res.json();
+        return json.data ?? json;
+    },
+
+    createPaymentNotice: async (dto: CreatePaymentNoticeDto): Promise<PaymentNotice> => {
+        const res = await fetchWithAuth("/payment-notices", {
+            method: "POST",
+            body: JSON.stringify(dto),
+        });
+        if (!res.ok) {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                const err = json.error ?? json.message ?? txt;
+                throw new Error(err || "Failed to create payment notice");
+            } catch {
+                throw new Error(txt || "Failed to create payment notice");
+            }
+        }
+        const json = await res.json();
+        return json.data ?? json; // Handle both wrapped and plain responses
+    },
 };
 
 // Helper function to convert backend status to display status
 export const mapStatusToDisplay = (status: number): string => {
-  switch (status) {
-    case 0: return 'Pending';
-    case 1: return 'Paid';
-    case 2: return 'Failed';
-    case 3: return 'Expired';
-    default: return 'Unknown';
-  }
+    switch (status) {
+	case 0: return 'Pending';
+	case 1: return 'Paid';
+	case 2: return 'Failed';
+	case 3: return 'Expired';
+	default: return 'Unknown';
+    }
 };
 
 // ---------- Convenience: clear stored tokens on critical auth error ----------
@@ -390,6 +450,7 @@ export const forceLogout = async () => {
    POST /admin/schoolyears   -> add/update school year
    GET  /admin/schoolyears/current -> current school year
    GET  /admin/appointments  -> list appointments
+   POST /payment-notices     -> create payment notice
    - If your backend returns different route names or response shapes, adjust code parsing accordingly.
    - In components, call authApi.login(...) and then check returned role before navigating.
    - For sensitive token storage we used expo-secure-store. Ensure you `expo install expo-secure-store`.

@@ -87,6 +87,14 @@ export default function TabsLayout() {
 		}}
 	    />
 
+	    <Tabs.Screen
+		name="receipt"
+		options={{
+		    href: null, // This removes it from the tab bar
+		    tabBarStyle: { display: "none" }, // optional: hide bar entirely when on pay
+		}}
+	    />
+
 	</Tabs>
     );
 }

@@ -21,7 +21,7 @@ interface User {
     isPending?: boolean; // simulate payment status
 }
 
-const API_URL = "http://10.239.1.175:5113/api/auth/members"; // adjust if needed
+const API_URL = "http://192.168.254.132:5113/api/auth/members"; // adjust if needed
 
 const Payments = () => {
     const [selectedIndex, setSelectedIndex] = useState(0);

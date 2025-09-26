@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import title from "../assets/images/title.png";
-import { authApi } from "../services/api"; // 
+import { authApi } from "../services/api"; 
 
 const AdminLogin = () => {
     const [userName, setUserName] = useState("");
@@ -22,29 +22,33 @@ const AdminLogin = () => {
     const router = useRouter();
 
     const handleLogin = async () => {
-	if (!userName || !password) {
-	    Alert.alert("Error", "Please enter username and password");
-	    return;
-	}
+        // Trim both leading and trailing whitespace from inputs
+        const trimmedUserName = userName.trim();
+        const trimmedPassword = password.trim();
 
-	try {
-	    setLoading(true);
-	    const tokens = await authApi.login({ userName, password });
+        if (!trimmedUserName || !trimmedPassword) {
+            Alert.alert("Error", "Please enter username and password");
+            return;
+        }
 
-	    if (tokens.role === "Admin") {
-		router.push("/admindashboard");
-	    } else {
-		Alert.alert("Access Denied", "You do not have admin privileges");
-	    }
-	} catch (err: any) {
-	    Alert.alert("Login Failed", err.message || "Something went wrong");
-	} finally {
-	    setLoading(false);
-	}
+        try {
+            setLoading(true);
+            const tokens = await authApi.login({ userName: trimmedUserName, password: trimmedPassword });
+
+            if (tokens.role === "Admin") {
+                router.push("/admindashboard");
+            } else {
+                Alert.alert("Access Denied", "You do not have admin privileges");
+            }
+        } catch (err: any) {
+            Alert.alert("Login Failed", err.message || "Something went wrong");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-	<SafeAreaView className="h-screen w-screen bg-white">
+	<SafeAreaView className="flex-1 bg-white">
 	    <ScrollView className="flex-1">
 		<View className="items-center">
 		    <Image source={title} style={styles.title} />
@@ -80,8 +84,8 @@ const AdminLogin = () => {
 		    {/* Login Button */}
 		    <TouchableOpacity
 			className="bg-blue-500 p-4 rounded-lg mt-4"
-			onPress={handleLogin}
-			disabled={loading}
+				   onPress={handleLogin}
+				   disabled={loading}
 		    >
 			<Text className="text-white text-center">
 			    {loading ? "Logging in..." : "Continue"}
