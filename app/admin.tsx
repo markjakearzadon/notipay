@@ -9,33 +9,38 @@ import {
     Image,
     StyleSheet,
     Alert,
+    ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { authApi } from "../services/api";
+import * as SecureStore from "expo-secure-store";
 import title from "../assets/images/title.png";
-import { authApi } from "../services/api"; 
 
 const AdminLogin = () => {
-    const [userName, setUserName] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
     const router = useRouter();
 
     const handleLogin = async () => {
-        // Trim both leading and trailing whitespace from inputs
-        const trimmedUserName = userName.trim();
+        const trimmedEmail = email.trim();
         const trimmedPassword = password.trim();
 
-        if (!trimmedUserName || !trimmedPassword) {
-            Alert.alert("Error", "Please enter username and password");
+        if (!trimmedEmail || !trimmedPassword) {
+            Alert.alert("Error", "Please enter email and password");
             return;
         }
 
         try {
             setLoading(true);
-            const tokens = await authApi.login({ userName: trimmedUserName, password: trimmedPassword });
+            const response = await authApi.login({ email: trimmedEmail, password: trimmedPassword });
 
-            if (tokens.role === "Admin") {
+            // Save userId to SecureStore
+            await SecureStore.setItemAsync('userId', response.user.id);
+
+            // Check role
+            if (response.user.role.toLowerCase() === "admin") {
                 router.push("/admindashboard");
             } else {
                 Alert.alert("Access Denied", "You do not have admin privileges");
@@ -48,52 +53,59 @@ const AdminLogin = () => {
     };
 
     return (
-	<SafeAreaView className="flex-1 bg-white">
-	    <ScrollView className="flex-1">
-		<View className="items-center">
-		    <Image source={title} style={styles.title} />
-		</View>
+        <SafeAreaView className="h-full w-screen bg-white">
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+                <View className="items-center">
+                    <Image source={title} style={styles.title} />
+                </View>
 
-		<View className="p-4 mt-20 w-full gap-3 justify-around">
-		    <Text className="text-lg text-center font-bold">Admin Login</Text>
+                <View className="p-4 mt-20 w-full gap-3 justify-around">
+                    <Text className="text-lg font-bold text-center">Admin Login</Text>
 
-		    {/* Username */}
-		    <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
-			<Text>Username:</Text>
-			<TextInput
-			    className="ml-2 flex-1"
-			    placeholder="Enter username"
-			    value={userName}
-			    onChangeText={setUserName}
-			    autoCapitalize="none"
-			/>
-		    </View>
+                    {/* Email */}
+                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
+                        <TextInput
+                            className="flex-1"
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            editable={!loading}
+                        />
+                    </View>
 
-		    {/* Password */}
-		    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
-			<Text>Password:</Text>
-			<TextInput
-			    className="ml-2 flex-1"
-			    placeholder="Enter password"
-			    value={password}
-			    onChangeText={setPassword}
-			    secureTextEntry
-			/>
-		    </View>
+                    {/* Password */}
+                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
+                        <TextInput
+                            className="flex-1"
+                            placeholder="Password"
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                            editable={!loading}
+                        />
+                    </View>
 
-		    {/* Login Button */}
-		    <TouchableOpacity
-			className="bg-blue-500 p-4 rounded-lg mt-4"
-				   onPress={handleLogin}
-				   disabled={loading}
-		    >
-			<Text className="text-white text-center">
-			    {loading ? "Logging in..." : "Continue"}
-			</Text>
-		    </TouchableOpacity>
-		</View>
-	    </ScrollView>
-	</SafeAreaView>
+                    {/* Login Button */}
+                    <TouchableOpacity
+                        className={`p-4 rounded-lg mt-4 ${loading ? 'bg-blue-400' : 'bg-blue-500'}`}
+                        onPress={handleLogin}
+                        disabled={loading}
+                        activeOpacity={0.7}
+                    >
+                        {loading ? (
+                            <View className="flex-row items-center justify-center">
+                                <ActivityIndicator size="small" color="white" className="mr-2" />
+                                <Text className="text-white text-center font-medium">Logging in...</Text>
+                            </View>
+                        ) : (
+                            <Text className="text-white text-center font-medium">Continue</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
@@ -101,8 +113,8 @@ export default AdminLogin;
 
 const styles = StyleSheet.create({
     title: {
-	width: 200,
-	height: 200,
-	justifyContent: "center",
+        width: 200,
+        height: 200,
+        justifyContent: "center",
     },
 });

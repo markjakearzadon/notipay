@@ -12,38 +12,43 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { authApi } from "../services/api"; // 
+import { authApi } from "../services/api";
+import * as SecureStore from "expo-secure-store";
 
 const UserLogin = () => {
-    const [userName, setUserName] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
     const router = useRouter();
 
     const handleLogin = async () => {
-        const trimmedUserName = userName.trim();
-        const trimmedPassword = password.trim();
+	const trimmedEmail = email.trim();
+	const trimmedPassword = password.trim();
 
-        if (!trimmedUserName || !trimmedPassword) {
-            Alert.alert("Error", "Please enter username and password");
+	if (!trimmedEmail || !trimmedPassword) {
+            Alert.alert("Error", "Please enter email and password");
             return;
-        }
+	}
 
-        try {
+	try {
             setLoading(true);
-            const tokens = await authApi.login({ userName: trimmedUserName, password: trimmedPassword });
+            const response = await authApi.login({ email: trimmedEmail, password: trimmedPassword });
 
-            if (tokens.role === "User") {
-                router.push("/(tabs)");
+            // Save userId to SecureStore
+            await SecureStore.setItemAsync('userId', response.user.id);
+
+            // Check user role
+            if (response.user.role.toLowerCase() === "user") {
+		router.push("/(tabs)");
             } else {
-                Alert.alert("Access Denied", "You do not have admin privileges");
+		Alert.alert("Access Denied", "You do not have admin privileges");
             }
-        } catch (err: any) {
+	} catch (err: any) {
             Alert.alert("Login Failed", err.message || "Something went wrong");
-        } finally {
+	} finally {
             setLoading(false);
-        }
+	}
     };
 
     const handleRegister = () => {
@@ -60,17 +65,18 @@ const UserLogin = () => {
                 <View className="p-4 mt-20 w-full gap-3 justify-around">
                     <Text className="text-lg font-bold">Login</Text>
                     <Text className="text-sm text-gray-500">
-                        Enter your username and password to continue
+                        Enter your email and password to continue
                     </Text>
 
-                    {/* Username input */}
+                    {/* Email input */}
                     <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
                         <TextInput
                             className="flex-1"
-                            placeholder="Username"
-                            value={userName}
-                            onChangeText={setUserName}
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
                             autoCapitalize="none"
+                            keyboardType="email-address"
                             editable={!loading}
                         />
                     </View>
