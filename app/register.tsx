@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
     ScrollView,
     Text,
@@ -7,108 +8,188 @@ import {
     View,
     Image,
     StyleSheet,
+    Alert,
+    ActivityIndicator,
 } from "react-native";
-import title from "../assets/images/title.png";
-import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { authApi } from "../services/api";
 
-const register = () => {
+const Register = () => {
     const router = useRouter();
-    const [number, setNumber] = useState("");
-    const [fullname, setFullname] = useState("");
+    const [userName, setUserName] = useState("");
     const [password, setPassword] = useState("");
-    const handleRegister = () => {};
+    const [email, setEmail] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleRegister = async () => {
+        const trimmedUserName = userName.trim();
+        const trimmedPassword = password.trim();
+        const trimmedEmail = email.trim();
+        const trimmedPhoneNumber = phoneNumber.trim();
+
+        if (!trimmedUserName || !trimmedPassword) {
+            Alert.alert("Error", "Please enter username and password");
+            return;
+        }
+
+        // Validate email format if provided
+        if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+            Alert.alert("Error", "Please enter a valid email address");
+            return;
+        }
+
+        // Validate phone number format if provided (e.g., 10 digits for +63)
+        if (trimmedPhoneNumber && !/^\d{10}$/.test(trimmedPhoneNumber)) {
+            Alert.alert("Error", "Please enter a valid 10-digit phone number");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await authApi.register({
+                userName: trimmedUserName,
+                password: trimmedPassword,
+                email: trimmedEmail || undefined,
+                phoneNumber: trimmedPhoneNumber ? `+63${trimmedPhoneNumber}` : undefined,
+            });
+
+            if (response.success) {
+                Alert.alert("Success", "Registration successful. Please log in.");
+                router.push("/login");
+            } else {
+                Alert.alert("Registration Failed", "Unable to register. Please try again.");
+            }
+        } catch (err: any) {
+            Alert.alert("Registration Failed", err.message || "Something went wrong");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-	<SafeAreaView className="h-full w-screen bg-white">
-	    <ScrollView className="flex-1"
-			showsVerticalScrollIndicator={false}
-	    >
+        <SafeAreaView className="h-full w-screen bg-white">
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 <View className="items-center">
-                    <Image
-                        source={title}
-                        style={styles.title}
-                    />
+                    <Image source={require("../assets/images/title.png")} style={styles.title} />
                 </View>
-		<View className="p-4 mt-4 w-full gap-3 justify-around">
-		    <Text className="text-lg font-bold">Register</Text>
-		    <Text className="text-sm text-gray-500">
-			Enter your phone number to continue
-		    </Text>
-		    <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
-			<Text>+63</Text>
-			<TextInput
-			    className="ml-2 flex-1"
-			    placeholder="Phone Number"
-			    keyboardType="phone-pad"
-			    value={number}
-			    onChangeText={setNumber}
-			/>
-		    </View>
-		    <View className="border border-gray-300 rounded-lg p-4">
-			<TextInput
-			    className="ml-2 flex-1"
-			    placeholder="Full Name"
-			    value={fullname}
-			    onChangeText={setFullname}
-			/>
-		    </View>
-		    <View className="border border-gray-300 rounded-lg p-4">
-			<TextInput
-			    className="ml-2 flex-1"
-			    placeholder="Password"
-			    secureTextEntry
-			    value={password}
-			    onChangeText={setPassword}
-			/>
-		    </View>
-		    <TouchableOpacity
-			className="bg-blue-500 p-4 rounded-lg mt-4"
-			onPress={() => {
-			    // Handle register action
-			}}
-		    >
-			<Text className="text-white text-center">Continue</Text>
-		    </TouchableOpacity>
-		    {/* already have an account? */}
-		    <Text className="text-sm text-gray-500 text-center mt-2">
-			Already have an account?{" "}
-			<Text
-			    className="text-blue-500"
-			    onPress={() => router.push("/login")}
-			>
-			    Login here
-			</Text>
-		    </Text>
-		    {/* terms and policy */}
-		    <Text className="text-sm text-gray-500 text-center mt-4">
-			{/* By continuing, you agree to our Terms of Service and Privacy Policy. */}
-			Sa pagpapatuloy, sumasang-ayon ka sa aming Mga{" "}
-			<Text
-			    className="text-blue-500"
-			    onPress={() => router.push("/kambagelan")}
-			>
-			    Tuntunin ng Serbisyo
-			</Text>{" "}
-			at{" "}
-			<Text
-			    className="text-blue-500"
-			    onPress={() => router.push("/kambagelan")}
-			>
-			    Patakaran sa Privacy.
-			</Text>
-		    </Text>
-		</View>
-	    </ScrollView>
-	</SafeAreaView>
+
+                <View className="p-4 mt-20 w-full gap-3 justify-around">
+                    <Text className="text-lg font-bold">Register</Text>
+                    <Text className="text-sm text-gray-500">
+                        Enter your details to create an account
+                    </Text>
+
+                    {/* Username input */}
+                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
+                        <TextInput
+                            className="flex-1"
+                            placeholder="Username"
+                            value={userName}
+                            onChangeText={setUserName}
+                            autoCapitalize="none"
+                            editable={!loading}
+                        />
+                    </View>
+
+                    {/* Password input */}
+                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
+                        <TextInput
+                            className="flex-1"
+                            placeholder="Password"
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                            editable={!loading}
+                        />
+                    </View>
+
+                    {/* Email input */}
+                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
+                        <TextInput
+                            className="flex-1"
+                            placeholder="Email (optional)"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            editable={!loading}
+                        />
+                    </View>
+
+                    {/* Phone number input */}
+                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
+                        <Text className="mr-2">+63</Text>
+                        <TextInput
+                            className="flex-1"
+                            placeholder="Phone Number (optional)"
+                            keyboardType="phone-pad"
+                            value={phoneNumber}
+                            onChangeText={setPhoneNumber}
+                            editable={!loading}
+                        />
+                    </View>
+
+                    {/* Register button */}
+                    <TouchableOpacity
+                        className={`p-4 rounded-lg mt-4 ${loading ? 'bg-blue-400' : 'bg-blue-500'}`}
+                        onPress={handleRegister}
+                        disabled={loading}
+                        activeOpacity={0.7}
+                    >
+                        {loading ? (
+                            <View className="flex-row items-center justify-center">
+                                <ActivityIndicator size="small" color="white" className="mr-2" />
+                                <Text className="text-white text-center font-medium">Registering...</Text>
+                            </View>
+                        ) : (
+                            <Text className="text-white text-center font-medium">Continue</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Login link */}
+                    <Text className="text-sm text-gray-500 text-center mt-2">
+                        Already have an account?{" "}
+                        <Text
+                            className="text-blue-500"
+                            onPress={() => router.push("/login")}
+                            style={{ opacity: loading ? 0.5 : 1 }}
+                        >
+                            Login here
+                        </Text>
+                    </Text>
+
+                    {/* Terms and Policy */}
+                    <Text className="text-sm text-gray-500 text-center mt-4">
+                        Sa pagpapatuloy, sumasang-ayon ka sa aming{" "}
+                        <Text
+                            className="text-blue-500"
+                            onPress={() => router.push("/kambagelan")}
+                            style={{ opacity: loading ? 0.5 : 1 }}
+                        >
+                            Tuntunin ng Serbisyo
+                        </Text>{" "}
+                        at{" "}
+                        <Text
+                            className="text-blue-500"
+                            onPress={() => router.push("/kambagelan")}
+                            style={{ opacity: loading ? 0.5 : 1 }}
+                        >
+                            Patakaran sa Privacy.
+                        </Text>
+                    </Text>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
-export default register;
+export default Register;
+
 const styles = StyleSheet.create({
     title: {
         width: 200,
         height: 200,
         justifyContent: "center",
-    }
+    },
 });
