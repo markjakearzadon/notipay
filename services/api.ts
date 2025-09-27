@@ -295,6 +295,20 @@ export const paymentNoticeApi = {
         const json = await res.json();
         return json.data ?? json;
     },
+    // Add to paymentNoticeApi in api.ts
+    getAllPayments: async (status?: "PENDING" | "PAID"): Promise<PaymentNotice[]> => {
+      const params = new URLSearchParams();
+      if (status) params.append("status", status === "PAID" ? "SUCCEEDED" : "PENDING");
+      const path = `/payments${params.toString() ? "?" + params.toString() : ""}`;
+      const res = await fetchWithAuth(path, { method: "GET" });
+      if (!res.ok) throw new Error(await res.text() || "Failed to fetch payments");
+      const json = await res.json();
+      // Map backend status (SUCCEEDED -> PAID)
+      return (json.data ?? json).map((payment: PaymentNotice) => ({
+          ...payment,
+          status: payment.status === "SUCCEEDED" ? "PAID" : payment.status,
+      }));
+    },
 };
 
 // ---------- Helpers ----------
