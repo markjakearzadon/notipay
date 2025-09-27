@@ -5,12 +5,12 @@ import * as SecureStore from "expo-secure-store";
 import { paymentNoticeApi, CreatePaymentNoticeDto, PaymentNotice } from "../services/api"; // Import from api.ts
 
 interface User {
-    id: string; // Changed to string to match UserAdminDto
-    userName: string;
+    id: string;
+    fullname: string; 
     role: string;
 }
 
-const API_URL = "http://192.168.254.132:5113/api/auth/members"; // Updated to match api.ts endpoint
+const API_URL = "https://notipaygobackend-ev1s.onrender.com/api/user"; // Updated to match api.ts endpoint
 
 const MemberList = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -92,16 +92,17 @@ const MemberList = () => {
     }, []);
 
     const renderItem = ({ item }: { item: User }) => (
-        <View className="p-4 m-2 bg-gray-100 rounded-lg border border-gray-200">
-            <Text className="text-lg font-semibold text-gray-800">{item.userName}</Text>
+	<View className="p-4 m-2 bg-gray-100 rounded-lg border border-gray-200">
+            <Text className="text-lg font-semibold text-gray-800">{item.fullname}</Text> {/* Assuming you already fixed this from userName */}
             <Text className="text-base text-gray-600">{item.role}</Text>
+            <Text className="text-base text-gray-600">ID: {item.id}</Text> {/* Add this line to display the ID */}
             <TouchableOpacity
-                className="mt-2 p-2 bg-blue-500 rounded-lg"
-                onPress={() => openPaymentModal(item.id)}
+		className="mt-2 p-2 bg-blue-500 rounded-lg"
+		onPress={() => openPaymentModal(item.id)}
             >
-                <Text className="text-white text-center">Send Payment Request</Text>
+		<Text className="text-white text-center">Send Payment Request</Text>
             </TouchableOpacity>
-        </View>
+	</View>
     );
 
     if (loading) {
