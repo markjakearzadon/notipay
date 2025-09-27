@@ -13,29 +13,35 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as SecureStore from "expo-secure-store";
-import { paymentNoticeApi, PaymentNotice, mapStatusToDisplay} from '../../services/api';
+import { paymentNoticeApi, PaymentNotice, mapStatusToDisplay } from '../../services/api';
 
 const PaymentList = () => {
     const [paymentRequests, setPaymentRequests] = useState<PaymentNotice[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
+    const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        loadPaymentRequests();
+        init();
     }, []);
 
-    const loadPaymentRequests = async () => {
+    const init = async () => {
+        const token = await SecureStore.getItemAsync('accessToken');
+        const storedUserId = await SecureStore.getItemAsync('userId'); // store userId during login
+        if (!token || !storedUserId) {
+            router.push('/login');
+            return;
+        }
+        setUserId(storedUserId);
+        await loadPaymentRequests(storedUserId);
+    };
+
+    const loadPaymentRequests = async (uid?: string) => {
         try {
             setLoading(true);
-            const token = await SecureStore.getItemAsync('accessToken');
-            
-            if (!token) {
-                router.push('/login');
-                return;
-            }
-
-            const result = await paymentNoticeApi.getMyPaymentRequests();
+            if (!uid && !userId) throw new Error("User ID missing");
+            const result = await paymentNoticeApi.getMyPaymentRequests(uid || userId!);
             setPaymentRequests(result || []);
         } catch (error) {
             console.error('Load payment requests error:', error);
@@ -52,19 +58,17 @@ const PaymentList = () => {
     };
 
     const handlePay = async (notice: PaymentNotice) => {
-        if (notice.status === 1) { // 1 = Paid
+        if (notice.status === "PAID") {
             router.push({
                 pathname: '/receipt',
                 params: { 
                     noticeId: notice.id, 
                     title: notice.title, 
                     amount: notice.amount.toString(),
-                    currency: notice.currency,
                     description: notice.description || '',
-                    createdAt: notice.createdAt,
-                    paidAt: notice.paidAt || '',
-                    status: notice.status.toString(),
-                    paymentUrl: notice.xenditPaymentLinkUrl || ''
+                    createdAt: notice.created_at,
+                    status: notice.status,
+                    paymentUrl: notice.checkout_url
                 }
             });
             return;
@@ -85,9 +89,8 @@ const PaymentList = () => {
                                 noticeId: notice.id, 
                                 title: notice.title, 
                                 amount: notice.amount.toString(),
-                                currency: notice.currency,
                                 description: notice.description || '',
-                                paymentUrl: notice.xenditPaymentLinkUrl || ''
+                                paymentUrl: notice.checkout_url
                             }
                         });
                     }
@@ -96,59 +99,22 @@ const PaymentList = () => {
         );
     };
 
-    const getStatusInfo = (status: number) => {
+    const getStatusInfo = (status: string) => {
         const displayStatus = mapStatusToDisplay(status);
-        
         switch (status) {
-            case 1: // Paid
-                return { 
-                    color: '#10B981', 
-                    bgColor: '#D1FAE5', 
-                    icon: 'checkmark-circle',
-                    text: displayStatus 
-                };
-            case 0: // Pending
-                return { 
-                    color: '#F59E0B', 
-                    bgColor: '#FEF3C7', 
-                    icon: 'time-outline',
-                    text: displayStatus 
-                };
-            case 2: // Failed
-                return { 
-                    color: '#EF4444', 
-                    bgColor: '#FECACA', 
-                    icon: 'close-circle',
-                    text: displayStatus 
-                };
-            case 3: // Expired
-                return { 
-                    color: '#6B7280', 
-                    bgColor: '#F3F4F6', 
-                    icon: 'clock-outline',
-                    text: displayStatus 
-                };
+            case "PAID":
+                return { color: '#10B981', bgColor: '#D1FAE5', icon: 'checkmark-circle', text: displayStatus };
+            case "PENDING":
+                return { color: '#F59E0B', bgColor: '#FEF3C7', icon: 'time-outline', text: displayStatus };
+            case "FAILED":
+                return { color: '#EF4444', bgColor: '#FECACA', icon: 'close-circle', text: displayStatus };
             default:
-                return { 
-                    color: '#6B7280', 
-                    bgColor: '#F3F4F6', 
-                    icon: 'help-circle',
-                    text: displayStatus 
-                };
+                return { color: '#6B7280', bgColor: '#F3F4F6', icon: 'help-circle', text: displayStatus };
         }
     };
 
-    const formatAmount = (amount: number, currency: string) => {
-        return `${currency === 'PHP' ? '₱' : currency} ${amount.toLocaleString('en-PH')}`;
-    };
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-PH', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
+    const formatAmount = (amount: number) => `₱ ${amount.toLocaleString('en-PH')}`;
+    const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
 
     if (loading) {
         return (
@@ -161,8 +127,8 @@ const PaymentList = () => {
         );
     }
 
-    const pendingCount = paymentRequests.filter(p => p.status === 0).length;
-    const paidCount = paymentRequests.filter(p => p.status === 1).length;
+    const pendingCount = paymentRequests.filter(p => p.status === "PENDING").length;
+    const paidCount = paymentRequests.filter(p => p.status === "PAID").length;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -185,11 +151,7 @@ const PaymentList = () => {
                             disabled={refreshing}
                             activeOpacity={0.8}
                         >
-                            <Ionicons
-                                name={refreshing ? 'refresh' : 'reload'}
-                                size={24}
-                                color="white"
-                            />
+                            <Ionicons name={refreshing ? 'refresh' : 'reload'} size={24} color="white" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -198,85 +160,43 @@ const PaymentList = () => {
             {/* Payment List */}
             <ScrollView 
                 style={styles.scrollView}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={handleRefresh}
-                        colors={['#6366F1']}
-                        tintColor="#6366F1"
-                    />
-                }
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#6366F1']} />}
                 showsVerticalScrollIndicator={false}
             >
                 {paymentRequests.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Ionicons name="wallet-outline" size={80} color="#D1D5DB" />
                         <Text style={styles.emptyTitle}>No payment requests yet</Text>
-                        <Text style={styles.emptySubtitle}>
-                            Payment requests will appear here when someone asks you to pay
-                        </Text>
+                        <Text style={styles.emptySubtitle}>Payment requests will appear here when someone asks you to pay</Text>
                     </View>
                 ) : (
                     <View style={styles.listContainer}>
                         {paymentRequests.map((item) => {
                             const statusInfo = getStatusInfo(item.status);
-                            
                             return (
                                 <TouchableOpacity
                                     key={item.id}
-                                    style={[
-                                        styles.paymentCard,
-                                        item.status === 1 && styles.paidCard
-                                    ]}
+                                    style={[styles.paymentCard, item.status === "PAID" && styles.paidCard]}
                                     onPress={() => handlePay(item)}
                                     activeOpacity={0.95}
                                 >
-                                    {/* Left Section - Title & Description */}
                                     <View style={styles.leftSection}>
-                                        <Text style={styles.title} numberOfLines={1}>
-                                            {item.title}
-                                        </Text>
-                                        {item.description && (
-                                            <Text style={styles.description} numberOfLines={1}>
-                                                {item.description}
-                                            </Text>
-                                        )}
-                                        <Text style={styles.date}>
-                                            {formatDate(item.createdAt)}
-                                        </Text>
+                                        <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+                                        {item.description && <Text style={styles.description} numberOfLines={1}>{item.description}</Text>}
+                                        <Text style={styles.date}>{formatDate(item.created_at)}</Text>
                                     </View>
 
-                                    {/* Right Section - Amount & Status */}
                                     <View style={styles.rightSection}>
-                                        {/* Amount */}
                                         <View style={styles.amountContainer}>
-                                            <Text style={styles.currencySymbol}>
-                                                {item.currency === 'PHP' ? '₱' : item.currency}
-                                            </Text>
-                                            <Text style={styles.amount}>
-                                                {item.amount.toLocaleString('en-PH')}
-                                            </Text>
+                                            <Text style={styles.currencySymbol}>₱</Text>
+                                            <Text style={styles.amount}>{item.amount.toLocaleString('en-PH')}</Text>
                                         </View>
-
-                                        {/* Status Badge */}
                                         <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
-                                            <Ionicons 
-                                                name={statusInfo.icon as any} 
-                                                size={16} 
-                                                color={statusInfo.color} 
-                                            />
-                                            <Text style={[styles.statusText, { color: statusInfo.color }]}>
-                                                {statusInfo.text}
-                                            </Text>
+                                            <Ionicons name={statusInfo.icon as any} size={16} color={statusInfo.color} />
+                                            <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
                                         </View>
-
-                                        {/* Action Button */}
-                                        {item.status !== 1 && (
-                                            <TouchableOpacity
-                                                style={styles.payButton}
-                                                onPress={() => handlePay(item)}
-                                                activeOpacity={0.8}
-                                            >
+                                        {item.status !== "PAID" && (
+                                            <TouchableOpacity style={styles.payButton} onPress={() => handlePay(item)} activeOpacity={0.8}>
                                                 <Text style={styles.payButtonText}>Pay Now</Text>
                                             </TouchableOpacity>
                                         )}
@@ -304,6 +224,8 @@ const PaymentList = () => {
         </SafeAreaView>
     );
 };
+
+export default PaymentList;
 
 const styles = StyleSheet.create({
     container: {
@@ -393,10 +315,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
@@ -476,10 +395,7 @@ const styles = StyleSheet.create({
         margin: 16,
         borderRadius: 12,
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
@@ -504,5 +420,3 @@ const styles = StyleSheet.create({
         color: '#10B981',
     },
 });
-
-export default PaymentList;
