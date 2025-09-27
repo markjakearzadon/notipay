@@ -1,8 +1,8 @@
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "https://notipaygobackend-p5ko.onrender.com/api"; 
+const API_URL = "https://notipaygobackend-ev1s.onrender.com/api"; 
 
-// ---------- Types ----------
+// Types 
 export interface PaymentNotice {
     id: string;
     reference_id: string;
