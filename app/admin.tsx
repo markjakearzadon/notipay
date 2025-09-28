@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -20,7 +21,8 @@ const AdminLogin = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
-
+    const [showPassword, setShowPassword] = useState(false);
+    
     const router = useRouter();
 
     const handleLogin = async () => {
@@ -80,11 +82,18 @@ const AdminLogin = () => {
                         <TextInput
                             className="flex-1"
                             placeholder="Password"
-                            secureTextEntry
+                            secureTextEntry={!showPassword} 
                             value={password}
                             onChangeText={setPassword}
                             editable={!loading}
                         />
+			<TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            <Ionicons
+                                name={showPassword ? "eye-off" : "eye"} // 👀 switch icons
+                                size={20}
+                                color="gray"
+                            />
+                        </TouchableOpacity>
                     </View>
 
                     {/* Login Button */}

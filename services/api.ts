@@ -51,10 +51,11 @@ export interface UpdatePaymentStatusDto {
 }
 
 export interface RegisterRequest {
-    userName: string;
+    fullname: string;
     password: string;
     email?: string;
-    phoneNumber?: string;
+    gcash_number: string;
+    role?: string;
 }
 
 export interface ApiResponse<T = any> {
@@ -156,7 +157,7 @@ export const authApi = {
     },
 
     register: async (req: RegisterRequest): Promise<{ success: boolean; userId?: string }> => {
-        const res = await fetch(`${API_URL}/auth/register`, {
+        const res = await fetch(`${API_URL}/user`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(req),

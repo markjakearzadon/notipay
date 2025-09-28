@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons"; 
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -21,6 +22,7 @@ const Register = () => {
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleRegister = async () => {
         const trimmedUserName = userName.trim();
@@ -48,17 +50,18 @@ const Register = () => {
         try {
             setLoading(true);
             const response = await authApi.register({
-                userName: trimmedUserName,
-                password: trimmedPassword,
-                email: trimmedEmail || undefined,
-                phoneNumber: trimmedPhoneNumber ? `+63${trimmedPhoneNumber}` : undefined,
+		fullname: trimmedUserName, // backend expects fullname, not userName
+		password: trimmedPassword,
+		email: trimmedEmail || undefined,
+		gcash_number: trimmedPhoneNumber ? `0${trimmedPhoneNumber}` : undefined, 
+		role: "user",
             });
 
-            if (response.success) {
+            if (response && response.id) {
                 Alert.alert("Success", "Registration successful. Please log in.");
                 router.push("/login");
             } else {
-                Alert.alert("Registration Failed", "Unable to register. Please try again.");
+		Alert.alert("Registration Failed", "Unable to register. Please try again.");
             }
         } catch (err: any) {
             Alert.alert("Registration Failed", err.message || "Something went wrong");
@@ -97,11 +100,18 @@ const Register = () => {
                         <TextInput
                             className="flex-1"
                             placeholder="Password"
-                            secureTextEntry
+                            secureTextEntry={!showPassword} 
                             value={password}
                             onChangeText={setPassword}
                             editable={!loading}
                         />
+			<TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            <Ionicons
+                                name={showPassword ? "eye-off" : "eye"} // 👀 switch icons
+                                size={20}
+                                color="gray"
+                            />
+                        </TouchableOpacity>
                     </View>
 
                     {/* Email input */}
