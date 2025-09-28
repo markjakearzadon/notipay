@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
   UIManager,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
@@ -24,22 +25,29 @@ const Notification = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchAnnouncements = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/api/announcements`);
+      setAnnouncements(response.data);
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch announcements: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/announcements`);
-        setAnnouncements(response.data);
-      } catch (error) {
-        Alert.alert("Error", "Failed to fetch announcements: " + error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAnnouncements();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAnnouncements();
+    setRefreshing(false);
+  };
 
   const toggleExpand = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -54,7 +62,17 @@ const Notification = () => {
 
   return (
     <SafeAreaView className="h-screen w-screen bg-white">
-      <ScrollView className="flex-1">
+      <ScrollView
+        className="flex-1"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#6366F1"]}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: "10%" }} // 👈 bottom padding
+      >
         <View className="px-5 py-8">
           <Text className="text-2xl font-bold text-gray-800 mb-6">
             Announcements
