@@ -11,8 +11,36 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { paymentNoticeApi, PaymentNotice, mapStatusToDisplay } from "../services/api";
 import title from "../assets/images/title.png";
+
+export type PaymentNotice = {
+  id: string;
+  reference_id: string;
+  payer_id: string;
+  payee_id: string;
+  amount: number;
+  title: string;
+  description: string;
+  status: string;
+  invoice_id: string;
+  disbursement_id: string;
+  checkout_url: string;
+  created_at: string;
+  updated_at: string;
+};
+
+const mapStatusToDisplay = (status: string) => {
+  switch (status) {
+    case "SUCCEEDED":
+      return "Paid";
+    case "PENDING":
+      return "Pending";
+    case "EXPIRED":
+      return "Expired";
+    default:
+      return status;
+  }
+};
 
 const Payments = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -26,10 +54,17 @@ const Payments = () => {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      const status = selectedIndex === 0 ? "SUCCEEDED" : "PENDING"; // Backend uses SUCCEEDED
-      const payments = await paymentNoticeApi.getAllPayments(status);
-      console.log("Fetched payments:", payments);
-      setPayments(payments);
+      const res = await fetch("https://notipaygobackend.onrender.com/api/payments");
+      if (!res.ok) {
+        throw new Error("Failed to fetch payments");
+      }
+      const data: PaymentNotice[] = await res.json();
+
+      // filter locally based on selectedIndex
+      const status = selectedIndex === 0 ? "SUCCEEDED" : "PENDING";
+      const filtered = data.filter((p) => p.status === status);
+
+      setPayments(filtered);
       setLoading(false);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -38,7 +73,7 @@ const Payments = () => {
   };
 
   const togglePaymentStatus = async (paymentId: string) => {
-    if (updatingPaymentId) return; // Prevent multiple clicks
+    if (updatingPaymentId) return;
     setUpdatingPaymentId(paymentId);
 
     try {
@@ -68,11 +103,7 @@ const Payments = () => {
       setPayments((prev) =>
         prev.map((p) =>
           p.id === paymentId
-            ? {
-                ...p,
-                status: updatedPayment.status,
-                updated_at: updatedPayment.updated_at,
-              }
+            ? { ...p, status: updatedPayment.status, updated_at: updatedPayment.updated_at }
             : p
         )
       );
@@ -126,7 +157,7 @@ const Payments = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {!loading && payments.length === 0 ? (
+          {payments.length === 0 ? (
             <Text style={styles.emptyText}>
               No {segments[selectedIndex].toLowerCase()} payments found
             </Text>
