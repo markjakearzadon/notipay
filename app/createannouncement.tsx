@@ -3,7 +3,7 @@ import { Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } fro
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 
-const API_BASE_URL = "https://notipaygobackend-ev1s.onrender.com/";
+const API_BASE_URL = "https://notipaygobackend.onrender.com/";
 
 const createannouncement = () => {
   const [title, setTitle] = useState("");

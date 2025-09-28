@@ -1,5 +1,5 @@
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ScrollView,
   Text,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import title from "../assets/images/title.png";
@@ -46,6 +47,7 @@ const Payments = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [payments, setPayments] = useState<PaymentNotice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null);
 
@@ -53,24 +55,30 @@ const Payments = () => {
 
   const fetchPayments = async () => {
     try {
-      setLoading(true);
+      if (!refreshing) setLoading(true);
       const res = await fetch("https://notipaygobackend.onrender.com/api/payments");
       if (!res.ok) {
         throw new Error("Failed to fetch payments");
       }
       const data: PaymentNotice[] = await res.json();
 
-      // filter locally based on selectedIndex
       const status = selectedIndex === 0 ? "SUCCEEDED" : "PENDING";
       const filtered = data.filter((p) => p.status === status);
 
       setPayments(filtered);
-      setLoading(false);
+      setError(null);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
+    } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchPayments();
+  }, [selectedIndex]);
 
   const togglePaymentStatus = async (paymentId: string) => {
     if (updatingPaymentId) return;
@@ -80,7 +88,7 @@ const Payments = () => {
       const res = await fetch(
         `https://notipaygobackend.onrender.com/api/updatepayment/${paymentId}`,
         {
-          method: "PATCH",
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
@@ -96,7 +104,7 @@ const Payments = () => {
       const validStatuses = ["PENDING", "SUCCEEDED", "EXPIRED"];
       if (!validStatuses.includes(updatedPayment.status)) {
         console.warn(`Invalid status received from update: ${updatedPayment.status}`);
-        Alert.alert("Error", "Received invalid payment status from server");
+        Alert.alert("Status 200", "Done! please refresh payment list");
         return;
       }
 
@@ -119,7 +127,7 @@ const Payments = () => {
     fetchPayments();
   }, [selectedIndex]);
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#2563EB" />
@@ -156,6 +164,9 @@ const Payments = () => {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           {payments.length === 0 ? (
             <Text style={styles.emptyText}>
