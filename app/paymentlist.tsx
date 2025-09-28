@@ -1,4 +1,3 @@
-import * as SecureStore from "expo-secure-store";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import { useState, useEffect } from "react";
 import {
@@ -12,57 +11,25 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { paymentNoticeApi, userApi, PaymentNotice, UserAdminDto } from "../services/api";
+import { paymentNoticeApi, PaymentNotice, mapStatusToDisplay } from "../services/api";
 import title from "../assets/images/title.png";
-
-const API_URL = "https://notipaygobackend.onrender.com/api";
 
 const Payments = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [payments, setPayments] = useState<PaymentNotice[]>([]);
-  const [users, setUsers] = useState<{ [key: string]: UserAdminDto }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null);
 
-  const segments = ["Succeeded", "Pending"];
+  const segments = ["Paid", "Pending"];
 
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      const status = selectedIndex === 0 ? "SUCCEEDED" : "PENDING";
+      const status = selectedIndex === 0 ? "SUCCEEDED" : "PENDING"; // Backend uses SUCCEEDED
       const payments = await paymentNoticeApi.getAllPayments(status);
-
+      console.log("Fetched payments:", payments);
       setPayments(payments);
-
-      // Fetch user details for payer_id and payee_id only if necessary
-      const userIds = new Set<string>();
-      payments.forEach((payment) => {
-        if (payment.payer_id && !users[payment.payer_id]) userIds.add(payment.payer_id);
-        if (payment.payee_id && !users[payment.payee_id]) userIds.add(payment.payee_id);
-      });
-
-      if (userIds.size > 0) {
-        const newUsers = await Promise.all(
-          Array.from(userIds).map(async (id) => {
-            try {
-              const user = await userApi.getAllUsers().then((users) =>
-                users.find((u) => u.id === id)
-              );
-              return user ? { [id]: user } : null;
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        const userMap = newUsers.reduce((acc, user) => {
-          if (user) return { ...acc, ...user };
-          return acc;
-        }, {} as { [key: string]: UserAdminDto });
-
-        setUsers((prev) => ({ ...prev, ...userMap }));
-      }
-
       setLoading(false);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -71,19 +38,19 @@ const Payments = () => {
   };
 
   const togglePaymentStatus = async (paymentId: string) => {
-    try {
-      const token = await SecureStore.getItemAsync("accessToken");
-      if (!token) {
-        throw new Error("No access token found. Please log in.");
-      }
+    if (updatingPaymentId) return; // Prevent multiple clicks
+    setUpdatingPaymentId(paymentId);
 
-      const res = await fetch(`${API_URL}/updatepayment/${paymentId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+    try {
+      const res = await fetch(
+        `https://notipaygobackend.onrender.com/api/updatepayment/${paymentId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!res.ok) {
         const errorData = await res.json();
@@ -100,12 +67,20 @@ const Payments = () => {
 
       setPayments((prev) =>
         prev.map((p) =>
-          p.id === paymentId ? { ...p, status: updatedPayment.status } : p
+          p.id === paymentId
+            ? {
+                ...p,
+                status: updatedPayment.status,
+                updated_at: updatedPayment.updated_at,
+              }
+            : p
         )
       );
-      Alert.alert("Success", "Payment status updated");
+      Alert.alert("Success", "Payment status updated to Paid");
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to update payment status");
+    } finally {
+      setUpdatingPaymentId(null);
     }
   };
 
@@ -151,46 +126,50 @@ const Payments = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {payments.length > 0 ? (
+          {!loading && payments.length === 0 ? (
+            <Text style={styles.emptyText}>
+              No {segments[selectedIndex].toLowerCase()} payments found
+            </Text>
+          ) : (
             payments.map((item) => (
               <View key={item.id} style={styles.paymentItem}>
                 <View style={styles.paymentDetails}>
                   <Text style={styles.paymentTitle}>
-                    {item.title || "No Title"}
-                  </Text>
-                  <Text style={styles.paymentInfo}>
-                    Payer: {users[item.payer_id]?.userName || "Unknown"}
-                  </Text>
-                  <Text style={styles.paymentInfo}>
-                    Payee: {users[item.payee_id]?.userName || "Unknown"}
+                    {item.title || "Untitled Payment"}
                   </Text>
                   <Text style={styles.paymentInfo}>
                     Amount: ₱{item.amount.toFixed(2)}
                   </Text>
                   <Text style={styles.paymentInfo}>
+                    Description: {item.description || "No description"}
+                  </Text>
+                  <Text style={styles.paymentInfo}>
                     Status: {mapStatusToDisplay(item.status)}
+                  </Text>
+                  <Text style={styles.paymentInfo}>
+                    Last Updated: {new Date(item.updated_at).toLocaleString()}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
-                    item.status === "PENDING"
+                    item.status === "PENDING" && !updatingPaymentId
                       ? styles.activeButton
                       : styles.disabledButton,
                   ]}
                   onPress={() => togglePaymentStatus(item.id)}
-                  disabled={item.status !== "PENDING"}
+                  disabled={item.status !== "PENDING" || updatingPaymentId === item.id}
                 >
                   <Text style={styles.actionButtonText}>
-                    {item.status === "PENDING" ? "Mark as Succeeded" : "Succeeded"}
+                    {item.status === "PENDING" && !updatingPaymentId
+                      ? "Mark as Paid"
+                      : item.status === "PENDING" && updatingPaymentId === item.id
+                      ? "Updating..."
+                      : "Paid"}
                   </Text>
                 </TouchableOpacity>
               </View>
             ))
-          ) : (
-            <Text style={styles.emptyText}>
-              No {segments[selectedIndex].toLowerCase()} payments found
-            </Text>
           )}
         </ScrollView>
       </View>
@@ -202,7 +181,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    justifyContent: "center",
   },
   header: {
     alignItems: "center",
@@ -224,7 +202,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    alignItems: "center",
     paddingBottom: 20,
   },
   paymentItem: {
@@ -235,6 +212,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
     width: "100%",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    marginBottom: 8,
   },
   paymentDetails: {
     flex: 1,
@@ -247,12 +227,14 @@ const styles = StyleSheet.create({
   paymentInfo: {
     fontSize: 14,
     color: "#6B7280",
-    marginTop: 4,
+    marginTop: 6,
   },
   actionButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
+    minWidth: 120,
+    alignItems: "center",
   },
   activeButton: {
     backgroundColor: "#2563EB",
@@ -279,3 +261,4 @@ const styles = StyleSheet.create({
 });
 
 export default Payments;
+
