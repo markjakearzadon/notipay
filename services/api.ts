@@ -1,8 +1,9 @@
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "https://notipaygobackend-ev1s.onrender.com/api"; 
+// const API_URL = "https://notipaygobackend-ev1s.onrender.com/api"; 
+const API_URL = "https://notipaygobackend.onrender.com/api"; 
 
-// Types 
+// ---------- Types ----------
 export interface PaymentNotice {
     id: string;
     reference_id: string;
@@ -11,7 +12,7 @@ export interface PaymentNotice {
     amount: number;
     title: string;
     description?: string;
-    status: "PENDING" | "PAID" | "FAILED";
+    status: "PENDING" | "SUCCEEDED" | "EXPIRED"; // Updated to match backend
     charge_id: string;
     disbursement_id?: string;
     checkout_url: string;
@@ -136,12 +137,11 @@ export const authApi = {
         const res = await fetch(`${API_URL}/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(req), // now sends { email, password }
+            body: JSON.stringify(req),
         });
 
-
-         if (!res.ok) {
-             const txt = await res.text();
+        if (!res.ok) {
+            const txt = await res.text();
             try {
                 const json = JSON.parse(txt);
                 throw new Error(json.error ?? json.message ?? txt);
@@ -167,8 +167,7 @@ export const authApi = {
             throw new Error(txt || "Register failed");
         }
 
-        const json = await res.json();
-        return json;
+        return res.json();
     },
 
     logout: async (): Promise<void> => {
@@ -262,10 +261,47 @@ export const adminApi = {
 export const paymentNoticeApi = {
     getMyPaymentRequests: async (userId: string): Promise<PaymentNotice[]> => {
         if (!userId) throw new Error("User ID is required");
+
         const res = await fetchWithAuth(`/userid/${userId}/payments`, { method: "GET" });
-        if (!res.ok) throw new Error(await res.text() || "Failed to fetch payment requests");
-        const json = await res.json();
-        return json.data ?? json;
+
+        // Log status + raw text for debugging
+        console.log("Fetching:", `/userid/${userId}/payments`);
+        console.log("Response status:", res.status);
+
+        const text = await res.text();
+        console.log("Raw response text:", text);
+
+        if (!res.ok) {
+            throw new Error(text || "Failed to fetch payment requests");
+        }
+
+        let json: any = null;
+        try {
+            json = JSON.parse(text);
+        } catch (err) {
+            console.warn("Failed to parse JSON:", err);
+        }
+
+        console.log("Parsed JSON:", json);
+
+        if (!json) {
+            return []; // nothing found → return empty list
+        }
+
+        const validStatuses = ["PENDING", "SUCCEEDED", "EXPIRED"];
+        const payments = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
+        const filteredPayments = payments.filter((payment: PaymentNotice) =>
+            validStatuses.includes(payment.status)
+        );
+
+        if (payments.length !== filteredPayments.length) {
+            console.warn(
+                "Filtered out invalid statuses:",
+                payments.filter((p: PaymentNotice) => !validStatuses.includes(p.status)).map((p: PaymentNotice) => p.status)
+            );
+        }
+
+        return filteredPayments;
     },
 
     updatePaymentStatus: async (id: string, dto: UpdatePaymentStatusDto): Promise<ApiResponse> => {
@@ -280,12 +316,23 @@ export const paymentNoticeApi = {
 
     getMyUnpaidDues: async (userId: string): Promise<PaymentNotice[]> => {
         if (!userId) throw new Error("User ID is required");
-        const res = await fetchWithAuth(`/api/userid/${userId}/unpaid`, { method: "GET" });
+        const res = await fetchWithAuth(`/userid/${userId}/unpaid`, { method: "GET" });
         if (!res.ok) throw new Error(await res.text() || "Failed to fetch unpaid dues");
         const json = await res.json();
-        return json.data ?? json;
+        const payments = json.data ?? json;
+        const validStatuses = ["PENDING", "SUCCEEDED", "EXPIRED"];
+        const filteredPayments = payments.filter((payment: PaymentNotice) =>
+            validStatuses.includes(payment.status)
+        );
+        if (payments.length !== filteredPayments.length) {
+            console.warn(
+                "Filtered out invalid statuses:",
+                payments.filter((p: PaymentNotice) => !validStatuses.includes(p.status)).map((p: PaymentNotice) => p.status)
+            );
+        }
+        return filteredPayments;
     },
-    
+
     createPaymentNotice: async (dto: CreatePaymentNoticeDto): Promise<PaymentNotice> => {
         const res = await fetchWithAuth("/payment-notices", {
             method: "POST",
@@ -295,19 +342,26 @@ export const paymentNoticeApi = {
         const json = await res.json();
         return json.data ?? json;
     },
-    // Add to paymentNoticeApi in api.ts
-    getAllPayments: async (status?: "PENDING" | "PAID"): Promise<PaymentNotice[]> => {
-      const params = new URLSearchParams();
-      if (status) params.append("status", status === "PAID" ? "SUCCEEDED" : "PENDING");
-      const path = `/payments${params.toString() ? "?" + params.toString() : ""}`;
-      const res = await fetchWithAuth(path, { method: "GET" });
-      if (!res.ok) throw new Error(await res.text() || "Failed to fetch payments");
-      const json = await res.json();
-      // Map backend status (SUCCEEDED -> PAID)
-      return (json.data ?? json).map((payment: PaymentNotice) => ({
-          ...payment,
-          status: payment.status === "SUCCEEDED" ? "PAID" : payment.status,
-      }));
+
+    getAllPayments: async (status?: "PENDING" | "SUCCEEDED" | "EXPIRED"): Promise<PaymentNotice[]> => {
+        const params = new URLSearchParams();
+        if (status) params.append("status", status);
+        const path = `/payments${params.toString() ? "?" + params.toString() : ""}`;
+        const res = await fetchWithAuth(path, { method: "GET" });
+        if (!res.ok) throw new Error(await res.text() || "Failed to fetch payments");
+        const json = await res.json();
+        const payments = json.data ?? json;
+        const validStatuses = ["PENDING", "SUCCEEDED", "EXPIRED"];
+        const filteredPayments = payments.filter((payment: PaymentNotice) =>
+            validStatuses.includes(payment.status)
+        );
+        if (payments.length !== filteredPayments.length) {
+            console.warn(
+                "Filtered out invalid statuses:",
+                payments.filter((p: PaymentNotice) => !validStatuses.includes(p.status)).map((p: PaymentNotice) => p.status)
+            );
+        }
+        return filteredPayments;
     },
 };
 
@@ -315,9 +369,11 @@ export const paymentNoticeApi = {
 export const mapStatusToDisplay = (status: string): string => {
     switch (status.toUpperCase()) {
         case "PENDING": return "Pending";
-        case "PAID": return "Paid";
-        case "FAILED": return "Failed";
-        default: return "Unknown";
+        case "SUCCEEDED": return "Succeeded";
+        case "EXPIRED": return "Expired";
+        default:
+            console.warn(`Unexpected status: ${status}`);
+            return "Unknown";
     }
 };
 

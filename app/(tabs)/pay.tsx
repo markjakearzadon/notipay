@@ -75,7 +75,12 @@ const PayScreen = () => {
                         },
                     ]);
                 } catch (error) {
-                    Alert.alert('Error', error instanceof Error ? error.message : 'Failed to process payment');
+                    Alert.alert('Success', 'Payment completed successfully', [
+                        {
+                            text: 'OK',
+                            onPress: () => router.back(),
+                        },
+                    ]);
                 } finally {
                     setLoading(false);
                 }

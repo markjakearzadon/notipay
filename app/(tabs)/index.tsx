@@ -28,7 +28,7 @@ const PaymentList = () => {
 
     const init = async () => {
         const token = await SecureStore.getItemAsync('accessToken');
-        const storedUserId = await SecureStore.getItemAsync('userId'); // store userId during login
+        const storedUserId = await SecureStore.getItemAsync('userId');
         if (!token || !storedUserId) {
             router.push('/login');
             return;
@@ -58,7 +58,7 @@ const PaymentList = () => {
     };
 
     const handlePay = async (notice: PaymentNotice) => {
-        if (notice.status === "PAID") {
+        if (notice.status === "SUCCEEDED") {
             router.push({
                 pathname: '/receipt',
                 params: { 
@@ -102,11 +102,11 @@ const PaymentList = () => {
     const getStatusInfo = (status: string) => {
         const displayStatus = mapStatusToDisplay(status);
         switch (status) {
-            case "PAID":
+            case "SUCCEEDED":
                 return { color: '#10B981', bgColor: '#D1FAE5', icon: 'checkmark-circle', text: displayStatus };
             case "PENDING":
                 return { color: '#F59E0B', bgColor: '#FEF3C7', icon: 'time-outline', text: displayStatus };
-            case "FAILED":
+            case "EXPIRED":
                 return { color: '#EF4444', bgColor: '#FECACA', icon: 'close-circle', text: displayStatus };
             default:
                 return { color: '#6B7280', bgColor: '#F3F4F6', icon: 'help-circle', text: displayStatus };
@@ -128,7 +128,7 @@ const PaymentList = () => {
     }
 
     const pendingCount = paymentRequests.filter(p => p.status === "PENDING").length;
-    const paidCount = paymentRequests.filter(p => p.status === "PAID").length;
+    const succeededCount = paymentRequests.filter(p => p.status === "SUCCEEDED").length;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -142,8 +142,8 @@ const PaymentList = () => {
                             <Text style={styles.statLabel}>Pending</Text>
                         </View>
                         <View style={styles.statItem}>
-                            <Text style={styles.statNumber}>{paidCount}</Text>
-                            <Text style={styles.statLabel}>Paid</Text>
+                            <Text style={styles.statNumber}>{succeededCount}</Text>
+                            <Text style={styles.statLabel}>Succeeded</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.reloadButton}
@@ -176,7 +176,7 @@ const PaymentList = () => {
                             return (
                                 <TouchableOpacity
                                     key={item.id}
-                                    style={[styles.paymentCard, item.status === "PAID" && styles.paidCard]}
+                                    style={[styles.paymentCard, item.status === "SUCCEEDED" && styles.paidCard]}
                                     onPress={() => handlePay(item)}
                                     activeOpacity={0.95}
                                 >
@@ -195,7 +195,7 @@ const PaymentList = () => {
                                             <Ionicons name={statusInfo.icon as any} size={16} color={statusInfo.color} />
                                             <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
                                         </View>
-                                        {item.status !== "PAID" && (
+                                        {item.status !== "SUCCEEDED" && (
                                             <TouchableOpacity style={styles.payButton} onPress={() => handlePay(item)} activeOpacity={0.8}>
                                                 <Text style={styles.payButtonText}>Pay Now</Text>
                                             </TouchableOpacity>
@@ -216,8 +216,8 @@ const PaymentList = () => {
                         <Text style={styles.footerValue}>{pendingCount}</Text>
                     </View>
                     <View style={styles.footerRow}>
-                        <Text style={styles.footerLabel}>Total Paid:</Text>
-                        <Text style={[styles.footerValue, styles.paidValue]}>{paidCount}</Text>
+                        <Text style={styles.footerLabel}>Total Succeeded:</Text>
+                        <Text style={[styles.footerValue, styles.paidValue]}>{succeededCount}</Text>
                     </View>
                 </View>
             )}
