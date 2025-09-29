@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons"; 
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { authApi } from "../services/api";
+import axios from "axios";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const Register = () => {
     const router = useRouter();
@@ -24,7 +26,11 @@ const Register = () => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleRegister = async () => {
+    // date picker state
+    const [showPicker, setShowPicker] = useState(false);
+    const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
+
+    const handleRegister = () => {
         const trimmedUserName = userName.trim();
         const trimmedPassword = password.trim();
         const trimmedEmail = email.trim();
@@ -34,37 +40,55 @@ const Register = () => {
             Alert.alert("Error", "Please enter username and password");
             return;
         }
-
-        // Validate email format if provided
         if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
             Alert.alert("Error", "Please enter a valid email address");
             return;
         }
-
-        // Validate phone number format if provided (e.g., 10 digits for +63)
         if (trimmedPhoneNumber && !/^\d{10}$/.test(trimmedPhoneNumber)) {
             Alert.alert("Error", "Please enter a valid 10-digit phone number");
             return;
         }
 
+        // open native date picker
+        setShowPicker(true);
+    };
+
+    const handleConfirmDate = async (selectedDate: Date) => {
         try {
             setLoading(true);
-            const response = await authApi.register({
-		fullname: trimmedUserName, // backend expects fullname, not userName
-		password: trimmedPassword,
-		email: trimmedEmail || undefined,
-		gcash_number: trimmedPhoneNumber ? `0${trimmedPhoneNumber}` : undefined, 
-		role: "user",
-            });
+            const formattedDate = selectedDate.toISOString().split("T")[0];
 
-            if (response && response.id) {
-                Alert.alert("Success", "Registration successful. Please log in.");
-                router.push("/login");
+            // send date to backend
+	    const response = await axios.get("https://notipaygobackend.onrender.com/api/date");
+            console.log("API Date Response:", response.data);
+
+	    const inputDate = new Date(response.data.date);
+
+            const oneYearLater = new Date(inputDate);
+            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+            if (new Date() >= oneYearLater) {
+                // eligible, continue registration
+                const registerRes = await authApi.register({
+                    fullname: userName.trim(),
+                    password: password.trim(),
+                    email: email.trim() || undefined,
+                    gcash_number: phoneNumber ? `0${phoneNumber.trim()}` : undefined,
+                    role: "user",
+                    appointment_date: formattedDate,
+                });
+
+                if (registerRes && registerRes.id) {
+                    Alert.alert("Success", "Registration successful. Please log in.");
+                    router.push("/login");
+                } else {
+                    Alert.alert("Registration Failed", "Unable to register. Please try again.");
+                }
             } else {
-		Alert.alert("Registration Failed", "Unable to register. Please try again.");
+                Alert.alert("Not Eligible", "You must be an employee for at least 1 year to register.");
             }
         } catch (err: any) {
-            Alert.alert("Registration Failed", err.message || "Something went wrong");
+            Alert.alert("Error", err.message || "Something went wrong");
         } finally {
             setLoading(false);
         }
@@ -100,14 +124,14 @@ const Register = () => {
                         <TextInput
                             className="flex-1 text-dark-500"
                             placeholder="Password"
-                            secureTextEntry={!showPassword} 
+                            secureTextEntry={!showPassword}
                             value={password}
                             onChangeText={setPassword}
                             editable={!loading}
                         />
-			<TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                             <Ionicons
-                                name={showPassword ? "eye-off" : "eye"} // 👀 switch icons
+                                name={showPassword ? "eye-off" : "eye"}
                                 size={20}
                                 color="gray"
                             />
@@ -142,7 +166,7 @@ const Register = () => {
 
                     {/* Register button */}
                     <TouchableOpacity
-                        className={`p-4 rounded-lg mt-4 ${loading ? 'bg-blue-400' : 'bg-blue-500'}`}
+                        className={`p-4 rounded-lg mt-4 ${loading ? "bg-blue-400" : "bg-blue-500"}`}
                         onPress={handleRegister}
                         disabled={loading}
                         activeOpacity={0.7}
@@ -190,6 +214,24 @@ const Register = () => {
                     </Text>
                 </View>
             </ScrollView>
+
+            {/* Native Date Picker */}
+            {showPicker && (
+                <DateTimePicker
+                    value={appointmentDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                        if (event.type === "set" && selectedDate) {
+                            setAppointmentDate(selectedDate);
+                            setShowPicker(false);
+                            handleConfirmDate(selectedDate);
+                        } else {
+                            setShowPicker(false);
+                        }
+                    }}
+                />
+            )}
         </SafeAreaView>
     );
 };
