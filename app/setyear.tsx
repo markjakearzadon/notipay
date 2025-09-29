@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { Text, TouchableOpacity, View, StyleSheet, ImageBackground, TextInput, Alert } from "react-native";
+import { 
+    Text, 
+    TouchableOpacity, 
+    View, 
+    StyleSheet, 
+    ImageBackground, 
+    TextInput, 
+    Alert 
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import background from "../assets/images/backburner.jpeg";
@@ -8,35 +16,33 @@ import axios from "axios";
 
 const SetSchoolYear = () => {
     const router = useRouter();
-    const [year, setYear] = useState("");
-    const [startDate, setStartDate] = useState("");
+    const [newDate, setNewDate] = useState("");
 
     const handleSubmit = async () => {
-        if (!year || !startDate) {
-            Alert.alert("Error", "Please fill in both year and start date.");
+        if (!newDate) {
+            Alert.alert("Error", "Please enter the new date.");
             return;
         }
 
         try {
-            const response = await axios.post(
-                "http://your-api-base-url/api/auth/school-year",
+            const response = await axios.patch(
+                "https://notipaygobackend.onrender.com/api/date",
                 {
-                    Year: year,
-                    StartDate: startDate,
+                    date: newDate, // must be in "YYYY-MM-DD"
                 },
                 {
                     headers: {
+                        "Content-Type": "application/json",
                         Authorization: `Bearer ${/* Replace with your token logic */ "your-jwt-token"}`,
                     },
                 }
             );
 
             Alert.alert("Success", response.data.message);
-            setYear("");
-            setStartDate("");
+            setNewDate("");
             router.push("/admindashboard");
-        } catch (error) {
-            Alert.alert("Error", error.response?.data?.error || "Failed to set school year.");
+        } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.error || "Failed to update date.");
         }
     };
 
@@ -47,41 +53,32 @@ const SetSchoolYear = () => {
                 style={styles.image}
                 resizeMode="cover"
             >
-                {/* Overlay for readability */}
                 <View className="flex-1 bg-black/60">
                     {/* Header */}
                     <View className="flex-row justify-between items-center px-6 mt-4">
                         <TouchableOpacity onPress={() => router.push("/admindashboard")}>
                             <Ionicons name="arrow-back" size={26} color="white" />
                         </TouchableOpacity>
-                        <Text className="text-white font-bold text-lg">Set School Year</Text>
-                        <View className="w-10 h-10" /> {/* Spacer for alignment */}
+                        <Text className="text-white font-bold text-lg">Set Server Date</Text>
+                        <View className="w-10 h-10" />
                     </View>
 
                     {/* Form */}
                     <View className="flex-1 px-10 mt-12 items-center">
                         <View className="w-full max-w-md">
-                            <Text className="text-white font-semibold mb-2">School Year</Text>
+                            <Text className="text-white font-semibold mb-2">New Date</Text>
                             <TextInput
                                 className="w-full h-12 bg-white/90 rounded-lg px-4 mb-6 text-black"
-                                placeholder="e.g., 2025-2026"
-                                value={year}
-                                onChangeText={setYear}
-                            />
-
-                            <Text className="text-white font-semibold mb-2">Start Date</Text>
-                            <TextInput
-                                className="w-full h-12 bg-white/90 rounded-lg px-4 mb-6 text-black"
-                                placeholder="e.g., 2025-09-01"
-                                value={startDate}
-                                onChangeText={setStartDate}
+                                placeholder="e.g., 2030-01-02"
+                                value={newDate}
+                                onChangeText={setNewDate}
                             />
 
                             <TouchableOpacity
                                 className="w-full h-12 bg-purple-600 rounded-lg justify-center items-center"
                                 onPress={handleSubmit}
                             >
-                                <Text className="text-white font-semibold">Submit</Text>
+                                <Text className="text-white font-semibold">Update Date</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
