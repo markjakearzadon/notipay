@@ -23,7 +23,6 @@ const UserLogin = () => {
     const [showPassword, setShowPassword] = useState(false);
     
     const router = useRouter();
-
     const handleLogin = async () => {
 	const trimmedEmail = email.trim();
 	const trimmedPassword = password.trim();
@@ -35,17 +34,41 @@ const UserLogin = () => {
 
 	try {
             setLoading(true);
-            const response = await authApi.login({ email: trimmedEmail, password: trimmedPassword });
 
-            // Save userId to SecureStore
-            await SecureStore.setItemAsync('userId', response.user.id);
+            // Step 1: Login
+            const response = await authApi.login({ 
+		email: trimmedEmail, 
+		password: trimmedPassword 
+            });
 
-            // Check user role
+            // Step 2: Fetch current server date
+            const serverRes = await fetch("https://notipaygobackend.onrender.com/api");
+            if (!serverRes.ok) throw new Error("Failed to fetch server date");
+            const serverJson = await serverRes.json();
+            const serverDate = new Date(serverJson.date);
+
+            // Step 3: Parse user created_at
+            const userCreatedAt = new Date(response.user.created_at);
+
+            // Step 4: Check difference in years
+            const diffInMs = serverDate.getTime() - userCreatedAt.getTime();
+            const diffInYears = diffInMs / (1000 * 60 * 60 * 24 * 365);
+
+            if (diffInYears < 1) {
+		Alert.alert("Access Denied", "Your account must be at least 1 year old to log in.");
+		return;
+            }
+
+            // Step 5: Save userId
+            await SecureStore.setItemAsync("userId", response.user.id);
+
+            // Step 6: Role check
             if (response.user.role.toLowerCase() === "user") {
 		router.push("/(tabs)");
             } else {
 		Alert.alert("Access Denied", "You do not have admin privileges");
             }
+
 	} catch (err: any) {
             Alert.alert("Login Failed", err.message || "Something went wrong");
 	} finally {
