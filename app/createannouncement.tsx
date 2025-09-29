@@ -2,34 +2,76 @@ import React, { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // For storing/retrieving JWT token
 
-const API_BASE_URL = "https://notipaygobackend.onrender.com"
+const API_BASE_URL = "https://notipaygobackend.onrender.com";
 
-const createannouncement = () => {
+const CreateAnnouncementAndPayment = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleCreateAnnouncement = async () => {
-    if (!title || !content) {
-      Alert.alert("Error", "Please fill in both title and content");
+  const handleCreateAnnouncementAndPayment = async () => {
+    // Validate inputs
+    if (!title || !content || !amount) {
+      Alert.alert("Error", "Please fill in all fields: title, content, and amount");
+      return;
+    }
+
+    // Validate amount is a positive number
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert("Error", "Amount must be a positive number");
       return;
     }
 
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/announcement`, {
-        title,
-        content,
-      });
-      Alert.alert("Success", "Announcement created successfully");
+
+      // Step 1: Create announcement
+      await axios.post(
+        `${API_BASE_URL}/api/announcement`,
+        {
+          title,
+          content,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Step 2: Create bulk payment
+      const paymentResponse = await axios.post(
+        `${API_BASE_URL}/api/bulk-payment`,
+        {
+          amount: parsedAmount,
+          title,
+          description: content, // Use content as description for payment
+          exclude_id: "68d6aadf4ee098645ac87d5d", // Hardcoded excluded user ID
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      Alert.alert(
+        "Success",
+        `Announcement created successfully and ${paymentResponse.data.length} payments created`
+      );
+
       // Reset form
       setTitle("");
       setContent("");
+      setAmount("");
     } catch (error) {
       Alert.alert(
         "Error",
-        error.response?.data || "Failed to create announcement: " + error.message
+        error.response?.data?.error || "Failed to create announcement or payments: " + error.message
       );
     } finally {
       setLoading(false);
@@ -43,27 +85,35 @@ const createannouncement = () => {
           <Text className="text-lg text-gray-800 mb-4">Title</Text>
           <TextInput
             className="border border-gray-300 rounded-md p-3 mb-4"
-            placeholder="Enter announcement title"
+            placeholder="Title"
             value={title}
             onChangeText={setTitle}
           />
-          <Text className="text-lg text-gray-800 mb-4">Content</Text>
+          <Text className="text-lg text-gray-800 mb-4">Description</Text>
           <TextInput
             className="border border-gray-300 rounded-md p-3 mb-4 h-32"
-            placeholder="Enter announcement content"
+            placeholder="Payment Description"
             value={content}
             onChangeText={setContent}
             multiline
           />
+          <Text className="text-lg text-gray-800 mb-4">Amount</Text>
+          <TextInput
+            className="border border-gray-300 rounded-md p-3 mb-4"
+            placeholder="Enter payment amount"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="numeric"
+          />
           <TouchableOpacity
             className="bg-deepblue px-3 py-3 rounded-md"
-            onPress={handleCreateAnnouncement}
+            onPress={handleCreateAnnouncementAndPayment}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Text className="text-white text-center">Create Announcement</Text>
+              <Text className="text-white text-center">Create Announcement & Payments</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -72,4 +122,4 @@ const createannouncement = () => {
   );
 };
 
-export default createannouncement;
+export default CreateAnnouncementAndPayment;

@@ -86,7 +86,7 @@ const Register = () => {
                     {/* Username input */}
                     <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
                         <TextInput
-                            className="flex-1"
+                            className="flex-1 text-dark-500"
                             placeholder="Username"
                             value={userName}
                             onChangeText={setUserName}
@@ -98,7 +98,7 @@ const Register = () => {
                     {/* Password input */}
                     <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
                         <TextInput
-                            className="flex-1"
+                            className="flex-1 text-dark-500"
                             placeholder="Password"
                             secureTextEntry={!showPassword} 
                             value={password}
@@ -117,7 +117,7 @@ const Register = () => {
                     {/* Email input */}
                     <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
                         <TextInput
-                            className="flex-1"
+                            className="flex-1 text-dark-500"
                             placeholder="Email (optional)"
                             value={email}
                             onChangeText={setEmail}
@@ -131,7 +131,7 @@ const Register = () => {
                     <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
                         <Text className="mr-2">+63</Text>
                         <TextInput
-                            className="flex-1"
+                            className="flex-1 text-dark-500"
                             placeholder="Phone Number (optional)"
                             keyboardType="phone-pad"
                             value={phoneNumber}

@@ -73,7 +73,7 @@ const UserLogin = () => {
                     {/* Email input */}
                     <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
                         <TextInput
-                            className="flex-1"
+                            className="flex-1 text-dark-500"
                             placeholder="Email"
                             value={email}
                             onChangeText={setEmail}
@@ -86,7 +86,7 @@ const UserLogin = () => {
                     {/* Password input */}
                     <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
                         <TextInput
-                            className="flex-1"
+                            className="flex-1 text-dark-500"
                             placeholder="Password"
                             secureTextEntry={!showPassword} 
                             value={password}
