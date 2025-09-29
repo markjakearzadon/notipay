@@ -1,8 +1,14 @@
-import React, { useState } from "react";
-import { Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // For storing/retrieving JWT token
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const API_BASE_URL = "https://notipaygobackend.onrender.com";
 
@@ -15,7 +21,10 @@ const CreateAnnouncementAndPayment = () => {
   const handleCreateAnnouncementAndPayment = async () => {
     // Validate inputs
     if (!title || !content || !amount) {
-      Alert.alert("Error", "Please fill in all fields: title, content, and amount");
+      Alert.alert(
+        "Error",
+        "Please fill in all fields: title, content, and amount"
+      );
       return;
     }
 
@@ -28,7 +37,6 @@ const CreateAnnouncementAndPayment = () => {
 
     setLoading(true);
     try {
-
       // Step 1: Create announcement
       await axios.post(
         `${API_BASE_URL}/api/announcement`,
@@ -71,7 +79,8 @@ const CreateAnnouncementAndPayment = () => {
     } catch (error) {
       Alert.alert(
         "Error",
-        error.response?.data?.error || "Failed to create announcement or payments: " + error.message
+        error.response?.data?.error ||
+          "Failed to create announcement or payments: " + error.message
       );
     } finally {
       setLoading(false);
@@ -88,6 +97,7 @@ const CreateAnnouncementAndPayment = () => {
             placeholder="Title"
             value={title}
             onChangeText={setTitle}
+            placeholderTextColor="#999"
           />
           <Text className="text-lg text-gray-800 mb-4">Description</Text>
           <TextInput
@@ -96,6 +106,7 @@ const CreateAnnouncementAndPayment = () => {
             value={content}
             onChangeText={setContent}
             multiline
+            placeholderTextColor="#999"
           />
           <Text className="text-lg text-gray-800 mb-4">Amount</Text>
           <TextInput
@@ -104,6 +115,7 @@ const CreateAnnouncementAndPayment = () => {
             value={amount}
             onChangeText={setAmount}
             keyboardType="numeric"
+            placeholderTextColor="#999"
           />
           <TouchableOpacity
             className="bg-deepblue px-3 py-3 rounded-md"
@@ -113,7 +125,9 @@ const CreateAnnouncementAndPayment = () => {
             {loading ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Text className="text-white text-center">Create Announcement & Payments</Text>
+              <Text className="text-white text-center">
+                Create Announcement & Payments
+              </Text>
             )}
           </TouchableOpacity>
         </View>
