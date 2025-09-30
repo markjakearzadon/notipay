@@ -3,162 +3,232 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { authApi } from "../services/api";
 
 const UserLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
-  const router = useRouter();
+    const router = useRouter();
 
-  const handleLogin = async () => {
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
+    const handleLogin = async () => {
+	const trimmedEmail = email.trim();
+	const trimmedPassword = password.trim();
 
-    if (!trimmedEmail || !trimmedPassword) {
-      Alert.alert("Error", "Please enter email and password");
-      return;
-    }
+	if (!trimmedEmail || !trimmedPassword) {
+	    Alert.alert("Error", "Please enter email and password");
+	    return;
+	}
 
-    try {
-      setLoading(true);
+	try {
+	    setLoading(true);
 
-      const response = await authApi.login({
-        email: trimmedEmail,
-        password: trimmedPassword,
-      });
+	    const response = await authApi.login({
+		email: trimmedEmail,
+		password: trimmedPassword,
+	    });
 
-      // Save userId securely
-      await SecureStore.setItemAsync("userId", response.user.id);
+	    await SecureStore.setItemAsync("userId", response.user.id);
 
-      // Role check
-      if (response.user.role.toLowerCase() === "user") {
-        router.push("/(tabs)");
-      } else {
-        Alert.alert("Access Denied", "You do not have admin privileges");
-      }
-    } catch (err: any) {
-      Alert.alert("Login Failed", err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+	    if (response.user.role.toLowerCase() === "user") {
+		router.push("/(tabs)");
+	    } else {
+		Alert.alert("Access Denied", "You do not have admin privileges");
+	    }
+	} catch (err: any) {
+	    Alert.alert("Login Failed", err.message || "Something went wrong");
+	} finally {
+	    setLoading(false);
+	}
+    };
 
-  const handleRegister = () => {
-    router.push("/register");
-  };
+    const handleRegister = () => {
+	router.push("/register");
+    };
 
-  return (
-    <SafeAreaView className="h-full w-screen bg-white">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="items-center">
-          <Image
-            source={require("../assets/images/title.png")}
-            style={styles.title}
-          />
-        </View>
+    return (
+	<SafeAreaView style={styles.safeArea}>
+	    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+		<View style={styles.imageContainer}>
+		    <Image
+			source={require("../assets/images/title.png")}
+			style={styles.title}
+		    />
+		</View>
 
-        <View className="p-4 mt-20 w-full gap-3 justify-around">
-          <Text className="text-lg font-bold">Login</Text>
-          <Text className="text-sm text-gray-500">
-            Enter your email and password to continue
-          </Text>
+		<View style={styles.formContainer}>
+		    <Text style={styles.header}>Login</Text>
+		    <Text style={styles.subHeader}>
+			Enter your email and password to continue
+		    </Text>
 
-          {/* Email input */}
-          <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
-            <TextInput
-              className="flex-1 text-dark-500"
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              editable={!loading}
-              placeholderTextColor="#999"
-            />
-          </View>
+		    {/* Email input */}
+		    <View style={styles.inputContainer}>
+			<TextInput
+			    style={styles.textInput}
+			    placeholder="Email"
+			    value={email}
+			    onChangeText={setEmail}
+			    autoCapitalize="none"
+			    keyboardType="email-address"
+			    editable={!loading}
+			    placeholderTextColor="#999"
+			/>
+		    </View>
 
-          {/* Password input */}
-          <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
-            <TextInput
-              className="flex-1 text-dark-500"
-              placeholder="Password"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-              editable={!loading}
-              placeholderTextColor="#999"
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? "eye-off" : "eye"}
-                size={20}
-                color="gray"
-              />
-            </TouchableOpacity>
-          </View>
+		    {/* Password input */}
+		    <View style={[styles.inputContainer, styles.marginTop]}>
+			<TextInput
+			    style={styles.textInput}
+			    placeholder="Password"
+			    secureTextEntry={!showPassword}
+			    value={password}
+			    onChangeText={setPassword}
+			    editable={!loading}
+			    placeholderTextColor="#999"
+			/>
+			<TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+			    <Ionicons
+				name={showPassword ? "eye-off" : "eye"}
+				size={20}
+				color="gray"
+			    />
+			</TouchableOpacity>
+		    </View>
 
-          {/* Login button */}
-          <TouchableOpacity
-            className={`p-4 rounded-lg mt-4 ${loading ? "bg-blue-400" : "bg-blue-500"}`}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.7}
-          >
-            {loading ? (
-              <View className="flex-row items-center justify-center">
-                <ActivityIndicator
-                  size="small"
-                  color="white"
-                  className="mr-2"
-                />
-                <Text className="text-white text-center font-medium">
-                  Logging in...
-                </Text>
-              </View>
-            ) : (
-              <Text className="text-white text-center font-medium">
-                Continue
-              </Text>
-            )}
-          </TouchableOpacity>
+		    {/* Login button */}
+		    <TouchableOpacity
+			style={[styles.button, loading && styles.buttonDisabled]}
+			onPress={handleLogin}
+			disabled={loading}
+			activeOpacity={0.7}
+		    >
+			{loading ? (
+			    <View style={styles.buttonContent}>
+				<ActivityIndicator
+				    size="small"
+				    color="white"
+				    style={styles.activityIndicator}
+				/>
+				<Text style={styles.buttonText}>Logging in...</Text>
+			    </View>
+			) : (
+			    <Text style={styles.buttonText}>Continue</Text>
+			)}
+		    </TouchableOpacity>
 
-          {/* Register link */}
-          <Text className="text-sm text-gray-500 text-center mt-2">
-            Don't have an account?{" "}
-            <Text
-              className="text-blue-500"
-              onPress={handleRegister}
-              style={{ opacity: loading ? 0.5 : 1 }}
-            >
-              Register here
-            </Text>
-          </Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+		    {/* Register link */}
+		    <Text style={styles.registerText}>
+			Don't have an account?{" "}
+			<Text
+			    style={[styles.registerLink, loading && styles.linkDisabled]}
+			    onPress={handleRegister}
+			>
+			    Register here
+			</Text>
+		    </Text>
+		</View>
+	    </ScrollView>
+	</SafeAreaView>
+    );
 };
 
 export default UserLogin;
 
 const styles = StyleSheet.create({
-  title: {
-    width: 200,
-    height: 200,
-    justifyContent: "center",
-  },
+    safeArea: {
+	flex: 1,
+	backgroundColor: "white",
+    },
+    scrollView: {
+	flex: 1,
+    },
+    imageContainer: {
+	alignItems: "center",
+    },
+    title: {
+	width: 200,
+	height: 200,
+	justifyContent: "center",
+    },
+    formContainer: {
+	padding: 16,
+	marginTop: 80,
+	width: "100%",
+	gap: 12,
+	justifyContent: "space-around",
+    },
+    header: {
+	fontSize: 18,
+	fontWeight: "bold",
+	color: "#1F2937", // Dark-500 equivalent
+    },
+    subHeader: {
+	fontSize: 14,
+	color: "#6B7280", // Gray-500 equivalent
+    },
+    inputContainer: {
+	flexDirection: "row",
+	alignItems: "center",
+	borderWidth: 1,
+	borderColor: "#D1D5DB", // Gray-300 equivalent
+	borderRadius: 8,
+	padding: 16,
+    },
+    marginTop: {
+	marginTop: 12,
+    },
+    textInput: {
+	flex: 1,
+	color: "#1F2937", // Dark-500 equivalent
+	fontSize: 16,
+    },
+    button: {
+	padding: 16,
+	borderRadius: 8,
+	backgroundColor: "#3B82F6", // Blue-500 equivalent
+	marginTop: 16,
+    },
+    buttonDisabled: {
+	backgroundColor: "#60A5FA", // Blue-400 equivalent
+    },
+    buttonContent: {
+	flexDirection: "row",
+	alignItems: "center",
+	justifyContent: "center",
+    },
+    activityIndicator: {
+	marginRight: 8,
+    },
+    buttonText: {
+	color: "white",
+	textAlign: "center",
+	fontWeight: "500",
+	fontSize: 16,
+    },
+    registerText: {
+	fontSize: 14,
+	color: "#6B7280", // Gray-500 equivalent
+	textAlign: "center",
+	marginTop: 8,
+    },
+    registerLink: {
+	color: "#3B82F6", // Blue-500 equivalent
+    },
+    linkDisabled: {
+	opacity: 0.5,
+    },
 });
