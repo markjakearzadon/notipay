@@ -50,6 +50,7 @@ const Register = () => {
             Alert.alert("Error", "Please enter a valid appointment date (YYYY-MM-DD)");
             return;
         }
+        var d;
 
         try {
             setLoading(true);
@@ -65,10 +66,11 @@ const Register = () => {
             console.log("API Date Response:", response.data);
 
             const inputDate = new Date(response.data.date);
-            const oneYearLater = new Date(inputDate);
-            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+            const oneYearBefore = new Date(inputDate);
+            oneYearBefore.setFullYear(oneYearBefore.getFullYear() - 1);
+            d = response.data.date;
 
-            if (new Date() >= oneYearLater) {
+            if (dateObj <= oneYearBefore) {
                 // Eligible, continue registration
                 const registerRes = await authApi.register({
                     fullname: trimmedUserName,
@@ -86,7 +88,7 @@ const Register = () => {
                     Alert.alert("Registration Failed", "Unable to register. Please try again.");
                 }
             } else {
-                Alert.alert("Not Eligible", "You must be an employee for at least 1 year to register.");
+                Alert.alert("Not Eligible", `You must be an employee for at least 1 year to register. ${d}`);
             }
         } catch (err: any) {
             Alert.alert("Error", err.message || "Something went wrong");
