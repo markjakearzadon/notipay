@@ -15,7 +15,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { authApi } from "../services/api";
 import axios from "axios";
-import DateTimePicker from "@react-native-community/datetimepicker";
 
 const Register = () => {
     const router = useRouter();
@@ -23,19 +22,18 @@ const Register = () => {
     const [password, setPassword] = useState("");
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
+    const [appointmentDate, setAppointmentDate] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // date picker state
-    const [showPicker, setShowPicker] = useState(false);
-    const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
-
-    const handleRegister = () => {
+    const handleRegister = async () => {
         const trimmedUserName = userName.trim();
         const trimmedPassword = password.trim();
         const trimmedEmail = email.trim();
         const trimmedPhoneNumber = phoneNumber.trim();
+        const trimmedAppointmentDate = appointmentDate.trim();
 
+        // Input validation
         if (!trimmedUserName || !trimmedPassword) {
             Alert.alert("Error", "Please enter username and password");
             return;
@@ -48,34 +46,37 @@ const Register = () => {
             Alert.alert("Error", "Please enter a valid 10-digit phone number");
             return;
         }
+        if (!trimmedAppointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(trimmedAppointmentDate)) {
+            Alert.alert("Error", "Please enter a valid appointment date (YYYY-MM-DD)");
+            return;
+        }
 
-        // open native date picker
-        setShowPicker(true);
-    };
-
-    const handleConfirmDate = async (selectedDate: Date) => {
         try {
             setLoading(true);
-            const formattedDate = selectedDate.toISOString().split("T")[0];
+            // Validate date format
+            const dateObj = new Date(trimmedAppointmentDate);
+            if (isNaN(dateObj.getTime())) {
+                Alert.alert("Error", "Invalid date format. Please use YYYY-MM-DD");
+                return;
+            }
 
-            // send date to backend
-	    const response = await axios.get("https://notipaygobackend.onrender.com/api/date");
+            // Send date to backend
+            const response = await axios.get("https://notipaygobackend.onrender.com/api/date");
             console.log("API Date Response:", response.data);
 
-	    const inputDate = new Date(response.data.date);
-
+            const inputDate = new Date(response.data.date);
             const oneYearLater = new Date(inputDate);
             oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
 
             if (new Date() >= oneYearLater) {
-                // eligible, continue registration
+                // Eligible, continue registration
                 const registerRes = await authApi.register({
-                    fullname: userName.trim(),
-                    password: password.trim(),
-                    email: email.trim() || undefined,
-                    gcash_number: phoneNumber ? `0${phoneNumber.trim()}` : undefined,
+                    fullname: trimmedUserName,
+                    password: trimmedPassword,
+                    email: trimmedEmail || undefined,
+                    gcash_number: trimmedPhoneNumber ? `0${trimmedPhoneNumber}` : undefined,
                     role: "user",
-                    appointment_date: formattedDate,
+                    appointment_date: trimmedAppointmentDate,
                 });
 
                 if (registerRes && registerRes.id) {
@@ -95,143 +96,150 @@ const Register = () => {
     };
 
     return (
-        <SafeAreaView className="h-full w-screen bg-white">
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <View className="items-center">
+        <SafeAreaView style={styles.safeArea}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.imageContainer}>
                     <Image source={require("../assets/images/title.png")} style={styles.title} />
                 </View>
 
-                <View className="p-4 mt-20 w-full gap-3 justify-around">
-                    <Text className="text-lg font-bold">Register</Text>
-                    <Text className="text-sm text-gray-500">
+                <View style={styles.formContainer}>
+                    <Text style={styles.header}>Register</Text>
+                    <Text style={styles.subHeader}>
                         Enter your details to create an account
                     </Text>
 
                     {/* Username input */}
-                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4">
+                    <View style={styles.inputContainer}>
                         <TextInput
-                            className="flex-1 text-dark-500"
+                            style={styles.textInput}
                             placeholder="Username"
                             value={userName}
                             onChangeText={setUserName}
                             autoCapitalize="none"
                             editable={!loading}
+                            placeholderTextColor="#999"
                         />
                     </View>
 
                     {/* Password input */}
-                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
+                    <View style={[styles.inputContainer, styles.marginTop]}>
                         <TextInput
-                            className="flex-1 text-dark-500"
+                            style={styles.textInput}
                             placeholder="Password"
                             secureTextEntry={!showPassword}
                             value={password}
                             onChangeText={setPassword}
                             editable={!loading}
+                            placeholderTextColor="#999"
                         />
                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                             <Ionicons
                                 name={showPassword ? "eye-off" : "eye"}
-                                size={20}
+                                size={18}
                                 color="gray"
                             />
                         </TouchableOpacity>
                     </View>
 
                     {/* Email input */}
-                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
+                    <View style={[styles.inputContainer, styles.marginTop]}>
                         <TextInput
-                            className="flex-1 text-dark-500"
+                            style={styles.textInput}
                             placeholder="Email (optional)"
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
                             keyboardType="email-address"
                             editable={!loading}
+                            placeholderTextColor="#999"
                         />
                     </View>
 
                     {/* Phone number input */}
-                    <View className="flex-row items-center border border-gray-300 rounded-lg p-4 mt-3">
-                        <Text className="mr-2">+63</Text>
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <Text style={styles.phonePrefix}>+63</Text>
                         <TextInput
-                            className="flex-1 text-dark-500"
+                            style={styles.textInput}
                             placeholder="Phone Number (optional)"
                             keyboardType="phone-pad"
                             value={phoneNumber}
                             onChangeText={setPhoneNumber}
                             editable={!loading}
+                            placeholderTextColor="#999"
+                        />
+                    </View>
+
+                    <Text style={styles.subHeader} className="mt-4">
+			When did you start your appointment?
+                    </Text>
+                    {/* Appointment date input */}
+                    <View style={[styles.inputContainer, styles.marginTop, styles.appointmentInputContainer]}> 
+			<TextInput
+                            style={styles.appointmentTextInput}
+                            placeholder="(YYYY-MM-DD)"
+                            value={appointmentDate}
+                            onChangeText={setAppointmentDate}
+                            editable={!loading}
+                            keyboardType="numeric"
+                            placeholderTextColor="#999"
                         />
                     </View>
 
                     {/* Register button */}
                     <TouchableOpacity
-                        className={`p-4 rounded-lg mt-4 ${loading ? "bg-blue-400" : "bg-blue-500"}`}
+                        style={[styles.button, loading && styles.buttonDisabled]}
                         onPress={handleRegister}
                         disabled={loading}
                         activeOpacity={0.7}
                     >
                         {loading ? (
-                            <View className="flex-row items-center justify-center">
-                                <ActivityIndicator size="small" color="white" className="mr-2" />
-                                <Text className="text-white text-center font-medium">Registering...</Text>
+                            <View style={styles.buttonContent}>
+                                <ActivityIndicator
+                                    size="small"
+                                    color="white"
+                                    style={styles.activityIndicator}
+                                />
+                                <Text style={styles.buttonText}>Registering...</Text>
                             </View>
                         ) : (
-                            <Text className="text-white text-center font-medium">Continue</Text>
+                            <Text style={styles.buttonText}>Continue</Text>
                         )}
                     </TouchableOpacity>
 
                     {/* Login link */}
-                    <Text className="text-sm text-gray-500 text-center mt-2">
+                    <Text style={styles.linkText}>
                         Already have an account?{" "}
                         <Text
-                            className="text-blue-500"
+                            style={[styles.link, loading && styles.linkDisabled]}
                             onPress={() => router.push("/login")}
-                            style={{ opacity: loading ? 0.5 : 1 }}
                         >
                             Login here
                         </Text>
                     </Text>
 
                     {/* Terms and Policy */}
-                    <Text className="text-sm text-gray-500 text-center mt-4">
+                    <Text style={styles.linkText}>
                         Sa pagpapatuloy, sumasang-ayon ka sa aming{" "}
                         <Text
-                            className="text-blue-500"
+                            style={[styles.link, loading && styles.linkDisabled]}
                             onPress={() => router.push("/kambagelan")}
-                            style={{ opacity: loading ? 0.5 : 1 }}
                         >
                             Tuntunin ng Serbisyo
                         </Text>{" "}
                         at{" "}
                         <Text
-                            className="text-blue-500"
+                            style={[styles.link, loading && styles.linkDisabled]}
                             onPress={() => router.push("/kambagelan")}
-                            style={{ opacity: loading ? 0.5 : 1 }}
                         >
                             Patakaran sa Privacy.
                         </Text>
                     </Text>
                 </View>
             </ScrollView>
-
-            {/* Native Date Picker */}
-            {showPicker && (
-                <DateTimePicker
-                    value={appointmentDate || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                        if (event.type === "set" && selectedDate) {
-                            setAppointmentDate(selectedDate);
-                            setShowPicker(false);
-                            handleConfirmDate(selectedDate);
-                        } else {
-                            setShowPicker(false);
-                        }
-                    }}
-                />
-            )}
         </SafeAreaView>
     );
 };
@@ -239,9 +247,104 @@ const Register = () => {
 export default Register;
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: "white",
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        minHeight: "100%", // Ensure ScrollView can scroll on smaller screens
+        paddingBottom: 20, // Add padding to avoid content being cut off
+    },
+    imageContainer: {
+        alignItems: "center",
+    },
     title: {
         width: 200,
         height: 200,
         justifyContent: "center",
+    },
+    formContainer: {
+        padding: 12,
+        marginTop: 60,
+        width: "100%",
+        gap: 8,
+        justifyContent: "space-around",
+    },
+    header: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#1F2937", // Dark-500 equivalent
+    },
+    subHeader: {
+        fontSize: 12,
+        color: "#6B7280", // Gray-500 equivalent
+    },
+    inputContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#D1D5DB", // Gray-300 equivalent
+        borderRadius: 6,
+        padding: 12,
+    },
+    appointmentInputContainer: {
+        padding: 14, // Slightly larger for appointment input
+        minHeight: 48, // Ensure enough height for placeholder
+    },
+    marginTop: {
+        marginTop: 8,
+    },
+    textInput: {
+        flex: 1,
+        color: "#1F2937", // Dark-500 equivalent
+        fontSize: 14,
+    },
+    appointmentTextInput: {
+        flex: 1,
+        color: "#1F2937", // Dark-500 equivalent
+        fontSize: 16, // Larger for appointment input
+    },
+    phonePrefix: {
+        marginRight: 6,
+        color: "#1F2937", // Dark-500 equivalent
+        fontSize: 14,
+    },
+    button: {
+        padding: 12,
+        borderRadius: 6,
+        backgroundColor: "#3B82F6", // Blue-500 equivalent
+        marginTop: 12,
+    },
+    buttonDisabled: {
+        backgroundColor: "#60A5FA", // Blue-400 equivalent
+    },
+    buttonContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    activityIndicator: {
+        marginRight: 6,
+    },
+    buttonText: {
+        color: "white",
+        textAlign: "center",
+        fontWeight: "500",
+        fontSize: 14,
+    },
+    linkText: {
+        fontSize: 12,
+        color: "#6B7280", // Gray-500 equivalent
+        textAlign: "center",
+        marginTop: 6,
+    },
+    link: {
+        color: "#3B82F6", // Blue-500 equivalent
+    },
+    linkDisabled: {
+        opacity: 0.5,
     },
 });
