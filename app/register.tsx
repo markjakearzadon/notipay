@@ -18,65 +18,82 @@ import axios from "axios";
 
 const Register = () => {
     const router = useRouter();
-    const [userName, setUserName] = useState("");
-    const [password, setPassword] = useState("");
+
+    const [lastName, setLastName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [middleInitial, setMiddleInitial] = useState("");
+    const [department, setDepartment] = useState("");
+    const [birthday, setBirthday] = useState("");
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [appointmentDate, setAppointmentDate] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const handleRegister = async () => {
-        const trimmedUserName = userName.trim();
-        const trimmedPassword = password.trim();
+        const trimmedLast = lastName.trim();
+        const trimmedFirst = firstName.trim();
+        const trimmedMiddle = middleInitial.trim().toUpperCase();
+        const trimmedDept = department.trim();
+        const trimmedBday = birthday.trim();
         const trimmedEmail = email.trim();
-        const trimmedPhoneNumber = phoneNumber.trim();
-        const trimmedAppointmentDate = appointmentDate.trim();
+        const trimmedPhone = phoneNumber.trim();
+        const trimmedPassword = password.trim();
+        const trimmedConfirm = confirmPassword.trim();
+        const trimmedAppointment = appointmentDate.trim();
 
-        // Input validation
-        if (!trimmedUserName || !trimmedPassword) {
-            Alert.alert("Error", "Please enter username and password");
+        const fullName = `${trimmedLast}, ${trimmedFirst}${trimmedMiddle ? " " + trimmedMiddle + "." : ""}`;
+
+        if (!trimmedLast || !trimmedFirst || !trimmedDept) {
+            Alert.alert("Error", "Please fill out your full name and department.");
+            return;
+        }
+        if (!trimmedPassword || !trimmedConfirm) {
+            Alert.alert("Error", "Please enter and confirm your password.");
+            return;
+        }
+        if (trimmedPassword !== trimmedConfirm) {
+            Alert.alert("Error", "Passwords do not match.");
             return;
         }
         if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-            Alert.alert("Error", "Please enter a valid email address");
+            Alert.alert("Error", "Please enter a valid email address.");
             return;
         }
-        if (trimmedPhoneNumber && !/^\d{10}$/.test(trimmedPhoneNumber)) {
-            Alert.alert("Error", "Please enter a valid 10-digit phone number");
+        if (trimmedPhone && !/^\d{10}$/.test(trimmedPhone)) {
+            Alert.alert("Error", "Please enter a valid 10-digit cellphone number.");
             return;
         }
-        if (!trimmedAppointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(trimmedAppointmentDate)) {
-            Alert.alert("Error", "Please enter a valid appointment date (YYYY-MM-DD)");
+        if (trimmedBday && !/^\d{4}-\d{2}-\d{2}$/.test(trimmedBday)) {
+            Alert.alert("Error", "Birthday must be in YYYY-MM-DD format.");
+            return;
+        }
+        if (!trimmedAppointment || !/^\d{4}-\d{2}-\d{2}$/.test(trimmedAppointment)) {
+            Alert.alert("Error", "Appointment date must be in YYYY-MM-DD format.");
             return;
         }
 
         try {
             setLoading(true);
-            // Validate date format
-            const dateObj = new Date(trimmedAppointmentDate);
-            if (isNaN(dateObj.getTime())) {
-                Alert.alert("Error", "Invalid date format. Please use YYYY-MM-DD");
-                return;
-            }
-
-            // Send date to backend
             const response = await axios.get("https://notipaygobackend.onrender.com/api/date");
             console.log("API Date Response:", response.data);
 
-            const inputDate = new Date(response.data.date);
-            const oneYearLater = new Date(inputDate);
+            const apiDate = new Date(response.data.date);
+            const oneYearLater = new Date(apiDate);
             oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
 
             if (new Date() >= oneYearLater) {
-                // Eligible, continue registration
                 const registerRes = await authApi.register({
-                    fullname: trimmedUserName,
-                    password: trimmedPassword,
+                    fullname: fullName,
+                    department: trimmedDept,
+                    birthday: trimmedBday || undefined,
                     email: trimmedEmail || undefined,
-                    gcash_number: trimmedPhoneNumber ? `0${trimmedPhoneNumber}` : undefined,
+                    gcash_number: trimmedPhone ? `0${trimmedPhone}` : undefined,
+                    password: trimmedPassword,
+                    appointment_date: trimmedAppointment,
                     role: "user",
-                    appointment_date: trimmedAppointmentDate,
                 });
 
                 if (registerRes && registerRes.id) {
@@ -89,7 +106,7 @@ const Register = () => {
                 Alert.alert("Not Eligible", "You must be an employee for at least 1 year to register.");
             }
         } catch (err: any) {
-            Alert.alert("Error", err.message || "Something went wrong");
+            Alert.alert("Error", err.message || "Something went wrong.");
         } finally {
             setLoading(false);
         }
@@ -108,24 +125,95 @@ const Register = () => {
 
                 <View style={styles.formContainer}>
                     <Text style={styles.header}>Register</Text>
-                    <Text style={styles.subHeader}>
-                        Enter your details to create an account
-                    </Text>
+                    <Text style={styles.subHeader}>Fill out the form below</Text>
 
-                    {/* Username input */}
+                    {/* 1. Name Fields */}
                     <View style={styles.inputContainer}>
                         <TextInput
                             style={styles.textInput}
-                            placeholder="Username"
-                            value={userName}
-                            onChangeText={setUserName}
-                            autoCapitalize="none"
-                            editable={!loading}
+                            placeholder="Last Name"
+                            value={lastName}
+                            onChangeText={setLastName}
                             placeholderTextColor="#999"
+                            editable={!loading}
+                        />
+                    </View>
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="First Name"
+                            value={firstName}
+                            onChangeText={setFirstName}
+                            placeholderTextColor="#999"
+                            editable={!loading}
+                        />
+                    </View>
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Middle Initial"
+                            value={middleInitial}
+                            maxLength={1}
+                            onChangeText={setMiddleInitial}
+                            placeholderTextColor="#999"
+                            editable={!loading}
                         />
                     </View>
 
-                    {/* Password input */}
+                    {/* 2. Department */}
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="College Department"
+                            value={department}
+                            onChangeText={setDepartment}
+                            placeholderTextColor="#999"
+                            editable={!loading}
+                        />
+                    </View>
+
+                    {/* 3. Birthday */}
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Birthday (YYYY-MM-DD) (Optional)"
+                            value={birthday}
+                            onChangeText={setBirthday}
+                            placeholderTextColor="#999"
+                            editable={!loading}
+                            keyboardType="numeric"
+                        />
+                    </View>
+
+                    {/* 4. Email */}
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            placeholderTextColor="#999"
+                            editable={!loading}
+                            autoCapitalize="none"
+                        />
+                    </View>
+
+                    {/* 5. Cellphone */}
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <Text style={styles.phonePrefix}>+63</Text>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Cellphone Number (optional)"
+                            keyboardType="phone-pad"
+                            value={phoneNumber}
+                            onChangeText={setPhoneNumber}
+                            placeholderTextColor="#999"
+                            editable={!loading}
+                        />
+                    </View>
+
+                    {/* 6-7. Passwords */}
                     <View style={[styles.inputContainer, styles.marginTop]}>
                         <TextInput
                             style={styles.textInput}
@@ -137,50 +225,30 @@ const Register = () => {
                             placeholderTextColor="#999"
                         />
                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                            <Ionicons
-                                name={showPassword ? "eye-off" : "eye"}
-                                size={18}
-                                color="gray"
-                            />
+                            <Ionicons name={showPassword ? "eye-off" : "eye"} size={18} color="gray" />
                         </TouchableOpacity>
                     </View>
 
-                    {/* Email input */}
                     <View style={[styles.inputContainer, styles.marginTop]}>
                         <TextInput
                             style={styles.textInput}
-                            placeholder="Email (optional)"
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
+                            placeholder="Confirm Password"
+                            secureTextEntry={!showPassword}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
                             editable={!loading}
                             placeholderTextColor="#999"
                         />
                     </View>
 
-                    {/* Phone number input */}
-                    <View style={[styles.inputContainer, styles.marginTop]}>
-                        <Text style={styles.phonePrefix}>+63</Text>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Phone Number (optional)"
-                            keyboardType="phone-pad"
-                            value={phoneNumber}
-                            onChangeText={setPhoneNumber}
-                            editable={!loading}
-                            placeholderTextColor="#999"
-                        />
-                    </View>
-
-                    <Text style={styles.subHeader} className="mt-4">
-			When did you start your appointment?
+                    {/* 8. Appointment Date */}
+                    <Text style={[styles.subHeader, styles.mtSmall]}>
+                        When did you start your appointment?
                     </Text>
-                    {/* Appointment date input */}
-                    <View style={[styles.inputContainer, styles.marginTop, styles.appointmentInputContainer]}> 
-			<TextInput
-                            style={styles.appointmentTextInput}
-                            placeholder="(YYYY-MM-DD)"
+                    <View style={[styles.inputContainer, styles.marginTop]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Appointment Date (YYYY-MM-DD)"
                             value={appointmentDate}
                             onChangeText={setAppointmentDate}
                             editable={!loading}
@@ -189,20 +257,15 @@ const Register = () => {
                         />
                     </View>
 
-                    {/* Register button */}
+                    {/* Submit */}
                     <TouchableOpacity
                         style={[styles.button, loading && styles.buttonDisabled]}
                         onPress={handleRegister}
                         disabled={loading}
-                        activeOpacity={0.7}
                     >
                         {loading ? (
                             <View style={styles.buttonContent}>
-                                <ActivityIndicator
-                                    size="small"
-                                    color="white"
-                                    style={styles.activityIndicator}
-                                />
+                                <ActivityIndicator size="small" color="white" style={styles.activityIndicator} />
                                 <Text style={styles.buttonText}>Registering...</Text>
                             </View>
                         ) : (
@@ -210,7 +273,7 @@ const Register = () => {
                         )}
                     </TouchableOpacity>
 
-                    {/* Login link */}
+                    {/* Login Link */}
                     <Text style={styles.linkText}>
                         Already have an account?{" "}
                         <Text
@@ -218,24 +281,6 @@ const Register = () => {
                             onPress={() => router.push("/login")}
                         >
                             Login here
-                        </Text>
-                    </Text>
-
-                    {/* Terms and Policy */}
-                    <Text style={styles.linkText}>
-                        Sa pagpapatuloy, sumasang-ayon ka sa aming{" "}
-                        <Text
-                            style={[styles.link, loading && styles.linkDisabled]}
-                            onPress={() => router.push("/kambagelan")}
-                        >
-                            Tuntunin ng Serbisyo
-                        </Text>{" "}
-                        at{" "}
-                        <Text
-                            style={[styles.link, loading && styles.linkDisabled]}
-                            onPress={() => router.push("/kambagelan")}
-                        >
-                            Patakaran sa Privacy.
                         </Text>
                     </Text>
                 </View>
@@ -247,104 +292,32 @@ const Register = () => {
 export default Register;
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: "white",
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        minHeight: "100%", // Ensure ScrollView can scroll on smaller screens
-        paddingBottom: 20, // Add padding to avoid content being cut off
-    },
-    imageContainer: {
-        alignItems: "center",
-    },
-    title: {
-        width: 200,
-        height: 200,
-        justifyContent: "center",
-    },
-    formContainer: {
-        padding: 12,
-        marginTop: 60,
-        width: "100%",
-        gap: 8,
-        justifyContent: "space-around",
-    },
-    header: {
-        fontSize: 16,
-        fontWeight: "bold",
-        color: "#1F2937", // Dark-500 equivalent
-    },
-    subHeader: {
-        fontSize: 12,
-        color: "#6B7280", // Gray-500 equivalent
-    },
+    safeArea: { flex: 1, backgroundColor: "white" },
+    scrollView: { flex: 1 },
+    scrollContent: { minHeight: "100%", paddingBottom: 20 },
+    imageContainer: { alignItems: "center" },
+    title: { width: 200, height: 200 },
+    formContainer: { padding: 12, marginTop: 40, width: "100%" },
+    header: { fontSize: 18, fontWeight: "bold", color: "#1F2937" },
+    subHeader: { fontSize: 12, color: "#6B7280", marginTop: 4 },
     inputContainer: {
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: "#D1D5DB", // Gray-300 equivalent
+        borderColor: "#D1D5DB",
         borderRadius: 6,
         padding: 12,
     },
-    appointmentInputContainer: {
-        padding: 14, // Slightly larger for appointment input
-        minHeight: 48, // Ensure enough height for placeholder
-    },
-    marginTop: {
-        marginTop: 8,
-    },
-    textInput: {
-        flex: 1,
-        color: "#1F2937", // Dark-500 equivalent
-        fontSize: 14,
-    },
-    appointmentTextInput: {
-        flex: 1,
-        color: "#1F2937", // Dark-500 equivalent
-        fontSize: 16, // Larger for appointment input
-    },
-    phonePrefix: {
-        marginRight: 6,
-        color: "#1F2937", // Dark-500 equivalent
-        fontSize: 14,
-    },
-    button: {
-        padding: 12,
-        borderRadius: 6,
-        backgroundColor: "#3B82F6", // Blue-500 equivalent
-        marginTop: 12,
-    },
-    buttonDisabled: {
-        backgroundColor: "#60A5FA", // Blue-400 equivalent
-    },
-    buttonContent: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    activityIndicator: {
-        marginRight: 6,
-    },
-    buttonText: {
-        color: "white",
-        textAlign: "center",
-        fontWeight: "500",
-        fontSize: 14,
-    },
-    linkText: {
-        fontSize: 12,
-        color: "#6B7280", // Gray-500 equivalent
-        textAlign: "center",
-        marginTop: 6,
-    },
-    link: {
-        color: "#3B82F6", // Blue-500 equivalent
-    },
-    linkDisabled: {
-        opacity: 0.5,
-    },
+    textInput: { flex: 1, color: "#1F2937", fontSize: 14 },
+    marginTop: { marginTop: 8 },
+    mtSmall: { marginTop: 12 },
+    phonePrefix: { marginRight: 6, color: "#1F2937", fontSize: 14 },
+    button: { padding: 12, borderRadius: 6, backgroundColor: "#3B82F6", marginTop: 16 },
+    buttonDisabled: { backgroundColor: "#60A5FA" },
+    buttonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+    activityIndicator: { marginRight: 6 },
+    buttonText: { color: "white", textAlign: "center", fontWeight: "500", fontSize: 14 },
+    linkText: { fontSize: 12, color: "#6B7280", textAlign: "center", marginTop: 6 },
+    link: { color: "#3B82F6" },
+    linkDisabled: { opacity: 0.5 },
 });
