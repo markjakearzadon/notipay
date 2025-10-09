@@ -12,7 +12,7 @@ export interface PaymentNotice {
     amount: number;
     title: string;
     description?: string;
-    status: "PENDING" | "SUCCEEDED" | "EXPIRED"; // Updated to match backend
+    status: "PENDING" | "SUCCEEDED" | "EXPIRED"; 
     charge_id: string;
     disbursement_id?: string;
     checkout_url: string;
@@ -51,11 +51,32 @@ export interface UpdatePaymentStatusDto {
 }
 
 export interface RegisterRequest {
-    fullname: string;
+    first_name: string;
+    middle_initial: string;
+    last_name: string;
+    college_department: string;
+    birthday?: string; // Optional ISO date string
+    email: string;
+    cellphone_number: string;
     password: string;
-    email?: string;
-    gcash_number: string;
-    role?: string;
+}
+
+export interface RegisterResponse {
+    message: string;
+    token: string;
+    user: {
+        id: string;
+        first_name: string;
+        middle_initial: string;
+        last_name: string;
+        college_department: string;
+        birthday?: string;
+        cellphone_number: string;
+        email: string;
+        role: string;
+        status: string;
+        created_at: string;
+    };
 }
 
 export interface ApiResponse<T = any> {
@@ -156,7 +177,7 @@ export const authApi = {
         return body;
     },
 
-    register: async (req: RegisterRequest): Promise<{ success: boolean; userId?: string }> => {
+    register: async (req: RegisterRequest): Promise<RegisterResponse> => {
         const res = await fetch(`${API_URL}/user`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -165,10 +186,22 @@ export const authApi = {
 
         if (!res.ok) {
             const txt = await res.text();
-            throw new Error(txt || "Register failed");
+            try {
+                const json = JSON.parse(txt);
+                throw new Error(json.error ?? json.message ?? txt);
+            } catch {
+                throw new Error(txt || "Registration failed");
+            }
         }
 
-        return res.json();
+        const data: RegisterResponse = await res.json();
+
+        // Automatically save token after registration
+        if (data.token) {
+            await saveToken(data.token);
+        }
+
+        return data;
     },
 
     logout: async (): Promise<void> => {
