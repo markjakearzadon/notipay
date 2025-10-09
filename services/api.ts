@@ -36,12 +36,13 @@ export interface LoginRequest {
 export interface LoginResponse {
     token: string;
     user: {
-        id: string;
-        fullname: string;
-        email: string;
-        gcash_number: string;
-        role: string;
-        created_at: string;
+	id: string;
+	first_name: string;
+	last_name: string;
+	email: string;
+	cellphone_number: string;
+	role: string;
+	created_at: string;
     };
 }
 
@@ -51,11 +52,32 @@ export interface UpdatePaymentStatusDto {
 }
 
 export interface RegisterRequest {
-    fullname: string;
+    first_name: string;
+    middle_initial?: string;
+    last_name: string;
+    cellphone_number: string;
+    email: string;
+    college_department: string;
+    birthday: string; // ISO format e.g., "2000-01-01T00:00:00Z"
     password: string;
-    email?: string;
-    gcash_number: string;
-    role?: string;
+}
+
+export interface RegisterResponse {
+    message: string;
+    token: string;
+    user: {
+	id: string;
+	first_name: string;
+	middle_initial?: string;
+	last_name: string;
+	cellphone_number: string;
+	email: string;
+	college_department: string;
+	birthday: string;
+	role: string;
+	status: string;
+	created_at: string;
+    };
 }
 
 export interface ApiResponse<T = any> {
@@ -122,7 +144,7 @@ export const getAccessToken = async (): Promise<string | null> => {
     return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
 };
 
-// ---------- Low-level fetch with auth ----------
+// Low-level fetch with auth
 async function fetchWithAuth(path: string, opts: RequestInit = {}): Promise<Response> {
     const accessToken = await getAccessToken();
     const headers = new Headers(opts.headers ?? {});
@@ -135,53 +157,59 @@ async function fetchWithAuth(path: string, opts: RequestInit = {}): Promise<Resp
 // ---------- Auth endpoints ----------
 export const authApi = {
     login: async (req: LoginRequest): Promise<LoginResponse> => {
-        const res = await fetch(`${API_URL}/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(req),
-        });
+	const res = await fetch(`${API_URL}/login`, {
+	    method: "POST",
+	    headers: { "Content-Type": "application/json" },
+	    body: JSON.stringify(req),
+	});
 
-        if (!res.ok) {
-            const txt = await res.text();
-            try {
-                const json = JSON.parse(txt);
-                throw new Error(json.error ?? json.message ?? txt);
-            } catch {
-                throw new Error(txt || "Login failed");
-            }
-        }
-
-        const body: LoginResponse = await res.json();
-        await saveToken(body.token);
-        return body;
+	if (!res.ok) {
+	    const txt = await res.text();
+	    try {
+		const json = JSON.parse(txt);
+		throw new Error(json.error ?? json.message ?? txt);
+	    } catch {
+		throw new Error(txt || "Login failed");
+	    }
+	}
+	const body: LoginResponse = await res.json();
+	await saveToken(body.token);
+	return body;
     },
 
-    register: async (req: RegisterRequest): Promise<{ success: boolean; userId?: string }> => {
-        const res = await fetch(`${API_URL}/user`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(req),
-        });
+    register: async (req: RegisterRequest): Promise<RegisterResponse> => {
+	const res = await fetch(`${API_URL}/user`, {
+	    method: "POST",
+	    headers: { "Content-Type": "application/json" },
+	    body: JSON.stringify(req),
+	});
 
-        if (!res.ok) {
-            const txt = await res.text();
-            throw new Error(txt || "Register failed");
-        }
+	if (!res.ok) {
+	    const txt = await res.text();
+	    try {
+		const json = JSON.parse(txt);
+		throw new Error(json.error ?? json.message ?? txt);
+	    } catch {
+		throw new Error(txt || "Registration failed");
+	    }
+	}
 
-        return res.json();
+	const body: RegisterResponse = await res.json();
+	await saveToken(body.token);
+	return body;
     },
 
     logout: async (): Promise<void> => {
-        try {
-            const token = await getAccessToken();
-            if (token) {
-                await fetch(`${API_URL}/auth/logout`, {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-            }
-        } catch {}
-        await clearToken();
+	try {
+	    const token = await getAccessToken();
+	    if (token) {
+		await fetch(`${API_URL}/auth/logout`, {
+		    method: "POST",
+		    headers: { Authorization: `Bearer ${token}` },
+		});
+	    }
+	} catch {}
+	await clearToken();
     },
 };
 

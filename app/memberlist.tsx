@@ -19,11 +19,16 @@ import {
 
 interface User {
     id: string;
-    fullname: string;
+    first_name: string;
+    middle_initial: string;
+    last_name: string;
+    college_department: string;
+    birthday: string;
     email: string;
+    cellphone_number: string;
     created_at: string;
-    gcash_number: string;
     role: string;
+    status: string;
 }
 
 const API_URL = "https://notipaygobackend-ev1s.onrender.com/api/user";
@@ -52,31 +57,38 @@ const MemberList = () => {
     const fetchMembers = async () => {
 	setLoading(true);
 	try {
-	    const token = await SecureStore.getItemAsync("accessToken");
-	    if (!token) {
+            const token = await SecureStore.getItemAsync("accessToken");
+            if (!token) {
 		Alert.alert("Error", "No access token found. Please log in.");
 		return;
-	    }
+            }
 
-	    const response = await fetch(API_URL, {
+            const response = await fetch(API_URL, {
 		headers: {
-		    Authorization: `Bearer ${token}`,
-		    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
 		},
-	    });
+            });
 
-	    if (!response.ok) {
+            if (!response.ok) {
 		throw new Error(`Failed to fetch members: ${response.status}`);
-	    }
+            }
 
-	    const data = await response.json();
-	    const fetchedUsers = Array.isArray(data.data) ? data.data : data;
-	    setUsers(fetchedUsers);
-	    setSortedUsers(sortUsers(fetchedUsers, sortBy, sortOrder));
+            const data = await response.json();
+            // Ensure array format
+            const fetchedUsers = Array.isArray(data.data) ? data.data : data;
+            // Map API fields to display-friendly objects
+            const mappedUsers = fetchedUsers.map((user: any) => ({
+		...user,
+		fullname: `${user.first_name} ${user.middle_initial.toUpperCase()}. ${user.last_name}`,
+            }));
+
+            setUsers(mappedUsers);
+            setSortedUsers(sortUsers(mappedUsers, sortBy, sortOrder));
 	} catch (err: any) {
-	    Alert.alert("Error", err.message || "Failed to fetch members");
+            Alert.alert("Error", err.message || "Failed to fetch members");
 	} finally {
-	    setLoading(false);
+            setLoading(false);
 	}
     };
 
@@ -240,9 +252,9 @@ const MemberList = () => {
 
 	    <FlatList
 		data={sortedUsers}
-		renderItem={renderItem}
-		keyExtractor={(item) => item.id}
-		className="px-4"
+		     renderItem={renderItem}
+		     keyExtractor={(item) => item.id}
+		     className="px-4"
 	    />
 
 	    {/* Other Modals (Payment + Details) remain unchanged */}
