@@ -1,3 +1,4 @@
+import * as SecureStore from "expo-secure-store";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -18,7 +19,9 @@ export type PaymentNotice = {
   id: string;
   reference_id: string;
   payer_id: string;
+  payer_name: string;
   payee_id: string;
+  payee_name: string;
   amount: number;
   title: string;
   description: string;
@@ -52,23 +55,41 @@ const Payments = () => {
   const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null);
 
   const segments = ["Paid", "Pending"];
+  const statusFilter = ["SUCCEEDED", "PENDING"];
 
   const fetchPayments = async () => {
     try {
       if (!refreshing) setLoading(true);
-      const res = await fetch("https://notipaygobackend.onrender.com/api/payments");
-      if (!res.ok) {
-        throw new Error("Failed to fetch payments");
+      const token = await SecureStore.getItemAsync("accessToken");
+      if (!token) {
+        Alert.alert("Error", "No access token found. Please log in.");
+        setError("No access token found. Please log in.");
+        return;
       }
-      const data: PaymentNotice[] = await res.json();
 
-      const status = selectedIndex === 0 ? "SUCCEEDED" : "PENDING";
-      const filtered = data.filter((p) => p.status === status);
+      const res = await fetch("https://notipaygobackend.onrender.com/api/payments", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Failed to fetch payments: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const paymentsArray = Array.isArray(data) ? data : data.data || [];
+
+      const filtered = paymentsArray.filter((p: PaymentNotice) => p.status === statusFilter[selectedIndex]);
 
       setPayments(filtered);
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Something went wrong");
+      console.error("Fetch Error:", err);
+      Alert.alert("Error", err.message || "Failed to fetch payments");
+      setError(err.message || "Failed to fetch payments");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,11 +106,18 @@ const Payments = () => {
     setUpdatingPaymentId(paymentId);
 
     try {
+      const token = await SecureStore.getItemAsync("accessToken");
+      if (!token) {
+        Alert.alert("Error", "No access token found. Please log in.");
+        return;
+      }
+
       const res = await fetch(
         `https://notipaygobackend.onrender.com/api/updatepayment/${paymentId}`,
         {
           method: "GET",
           headers: {
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -104,7 +132,7 @@ const Payments = () => {
       const validStatuses = ["PENDING", "SUCCEEDED", "EXPIRED"];
       if (!validStatuses.includes(updatedPayment.status)) {
         console.warn(`Invalid status received from update: ${updatedPayment.status}`);
-        Alert.alert("Status 200", "Done! please refresh payment list");
+        Alert.alert("Status 200", "Done! Please refresh payment list");
         return;
       }
 
@@ -117,6 +145,7 @@ const Payments = () => {
       );
       Alert.alert("Success", "Payment status updated to Paid");
     } catch (err: any) {
+      console.error("Update Error:", err);
       Alert.alert("Error", err.message || "Failed to update payment status");
     } finally {
       setUpdatingPaymentId(null);
@@ -181,6 +210,12 @@ const Payments = () => {
                   </Text>
                   <Text style={styles.paymentInfo}>
                     Amount: ₱{item.amount.toFixed(2)}
+                  </Text>
+                  <Text style={styles.paymentInfo}>
+                    Payer: {item.payer_name}
+                  </Text>
+                  <Text style={styles.paymentInfo}>
+                    Payee: {item.payee_name}
                   </Text>
                   <Text style={styles.paymentInfo}>
                     Description: {item.description || "No description"}
@@ -303,4 +338,3 @@ const styles = StyleSheet.create({
 });
 
 export default Payments;
-
