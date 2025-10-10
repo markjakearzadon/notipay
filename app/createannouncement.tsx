@@ -58,7 +58,7 @@ const CreateAnnouncementAndPayment = () => {
           amount: parsedAmount,
           title,
           description: content, // Use content as description for payment
-          exclude_id: "68d6aadf4ee098645ac87d5d", // Hardcoded excluded user ID
+          exclude_id: "68e7c6efa33ffd411aebee85", // Hardcoded excluded user ID
         },
         {
           headers: {
