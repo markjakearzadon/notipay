@@ -48,14 +48,6 @@ const WalletPayScreen = () => {
             const data = await res.json();
             console.log('Payment status:', data.status);
 
-            if (data.status === 1) { // ✅ Paid
-                setPaymentComplete(true);
-                await SecureStore.deleteItemAsync('pendingPayment');
-                if (intervalRef.current) clearInterval(intervalRef.current);
-            } else if (data.status === 2) { // ✅ Failed
-                setError('Payment failed. Please try again.');
-                if (intervalRef.current) clearInterval(intervalRef.current);
-            }
         } catch (err) {
             console.error('Status check error:', err);
         }
