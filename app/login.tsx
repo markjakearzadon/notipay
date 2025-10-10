@@ -45,6 +45,9 @@ const UserLogin = () => {
 
 	    if (response.user.role.toLowerCase() === "user") {
 		router.push("/(tabs)");
+	    }else if (response.user.role.toLowerCase() === "adming") {
+		Alert.alert("Redirect", "Use admin login for admin privileges.");
+		router.push("/admin");
 	    } else {
 		Alert.alert("Access Denied", "You do not have admin privileges");
 	    }
