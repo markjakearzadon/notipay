@@ -37,9 +37,13 @@ export interface LoginResponse {
     token: string;
     user: {
         id: string;
-        fullname: string;
+        first_name: string;
+        middle_initial: string;
+        last_name: string;
+        college_department?: string;
+        birthday?: string;
         email: string;
-        gcash_number: string;
+        cellphone_number?: string;
         role: string;
         created_at: string;
     };
@@ -126,6 +130,20 @@ export interface UserEligibilityDto {
     currentSchoolYear?: number | null;
     eligibilityMessage?: string;
 }
+const USER_INFO_KEY = "userInfo";
+
+export const saveUserInfo = async (user: LoginResponse["user"]) => {
+  await SecureStore.setItemAsync(USER_INFO_KEY, JSON.stringify(user));
+};
+
+export const getUserInfo = async (): Promise<LoginResponse["user"] | null> => {
+  const data = await SecureStore.getItemAsync(USER_INFO_KEY);
+  return data ? JSON.parse(data) : null;
+};
+
+export const clearUserInfo = async () => {
+  await SecureStore.deleteItemAsync(USER_INFO_KEY);
+};
 
 // ---------- Secure store keys ----------
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -153,6 +171,9 @@ async function fetchWithAuth(path: string, opts: RequestInit = {}): Promise<Resp
     return fetch(`${API_URL}${path}`, { ...opts, headers });
 }
 
+export const getFullName = (user: LoginResponse["user"]) =>
+    [user.first_name, user.middle_initial, user.last_name].filter(Boolean).join(" ");
+
 // ---------- Auth endpoints ----------
 export const authApi = {
     login: async (req: LoginRequest): Promise<LoginResponse> => {
@@ -173,12 +194,16 @@ export const authApi = {
         }
 
         const body: LoginResponse = await res.json();
+
+        // Save token and user
         await saveToken(body.token);
+        await saveUserInfo(body.user); // store user in SecureStore
+
         return body;
     },
 
-    register: async (req: RegisterRequest): Promise<RegisterResponse> => {
-        const res = await fetch(`${API_URL}/user`, {
+	register: async (req: RegisterRequest): Promise<RegisterResponse> => {
+            const res = await fetch(`${API_URL}/user`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(req),
@@ -215,6 +240,7 @@ export const authApi = {
             }
         } catch {}
         await clearToken();
+        await clearUserInfo();
     },
 };
 
